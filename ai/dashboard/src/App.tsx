@@ -25,6 +25,7 @@ import Gates from "./pages/Gates";
 import Monitoring from "./pages/Monitoring";
 import Rca from "./pages/Rca";
 import EmployeeWorkspace from "./pages/EmployeeWorkspace";
+import ApiContractViewer from "./pages/ApiContractViewer";
 import { Card, RiskBadge, CodeBlock, SidebarSection, NavItem } from "./components/ui/shared";
 import { AppCategory, PortalApp, SkillEngine, Skill, RunStatus, Run, FlowSpec, Runbook, IncidentBundle, DataContract, Risk } from "./types";
 import { nowIso, fmtTime, cn, shortId, safeJsonParse, randId, badgeClasses, statusClasses } from "./utils";
@@ -220,6 +221,9 @@ export default function App() {
       const emp = SKILLS.find(s => s.id === empId);
       return emp ? emp.title : "Employee Workspace";
     }
+    if (activeAppId.startsWith("api.")) {
+       return `API: ${activeAppId.slice(4)}`;
+    }
     if (activeAppId === "home") return "Dashboard";
     return APPS.find((a) => a.id === activeAppId)?.title ?? "Dashboard";
   }, [activeAppId]);
@@ -229,6 +233,9 @@ export default function App() {
       const empId = id.slice(9);
       const emp = SKILLS.find(s => s.id === empId);
       return emp ? emp.codename : id;
+    }
+    if (id.startsWith("api.")) {
+      return id.slice(4);
     }
     if (id === "home") return "Dashboard";
     return APPS.find((a) => a.id === id)?.title ?? id;
@@ -240,6 +247,7 @@ export default function App() {
       const emp = SKILLS.find(s => s.id === empId);
       return emp ? emp.risk : "safe";
     }
+    if (id.startsWith("api.")) return "safe";
     if (id === "home") return "safe";
     return APPS.find((a) => a.id === id)?.risk ?? "safe";
   };
@@ -340,7 +348,7 @@ export default function App() {
     if (activeAppId === "home") return <OperationsCenter runs={runs} setActiveAppId={openApp} setSelectedRunId={setSelectedRunId} setSelectedIncidentId={setSelectedIncidentId} runSkill={runSkill} todayIncidentCounts={todayIncidentCounts} runCounts={runCounts} currentRuns={currentRuns} todayIncidents={todayIncidents} suggestions={suggestions} />;
     if (activeAppId === "assets.orchestrator") return <OrchestratorViewer />;
     if (activeAppId === "assets.runbooks") return <Runbooks />;
-    if (activeAppId === "assets.contracts") return <DataContracts />;
+    if (activeAppId === "assets.contracts") return <DataContracts openApp={openApp} />;
     if (activeAppId === "assets.storybook") return <Storybook />;
     if (activeAppId === "exec.skills") return <AICrew runSkill={runSkill} openApp={openApp} />;
     if (activeAppId === "exec.gates") return <Gates runSkill={runSkill} />;
@@ -349,6 +357,10 @@ export default function App() {
     if (activeAppId.startsWith("employee.")) {
       const employeeId = activeAppId.slice(9);
       return <EmployeeWorkspace employeeId={employeeId} />;
+    }
+    if (activeAppId.startsWith("api.")) {
+      const apiName = activeAppId.slice(4);
+      return <ApiContractViewer apiName={apiName} />;
     }
     return <AICrew runSkill={runSkill} openApp={openApp} />;
   };
