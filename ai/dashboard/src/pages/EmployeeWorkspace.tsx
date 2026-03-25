@@ -11,10 +11,12 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
     const employee = SKILLS.find((s) => s.id === employeeId);
     // Initially, select the first 2 skills as an example or all
     const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+    const [consoleKey, setConsoleKey] = useState(0);
 
     useEffect(() => {
         if (employee) {
             setSelectedSkills(employee.skills);
+            setConsoleKey(0); // Reset console on employee change
         }
     }, [employee]);
 
@@ -26,6 +28,10 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
         setSelectedSkills((prev) =>
             prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
         );
+    };
+
+    const handleStartNewChat = () => {
+        setConsoleKey((prev) => prev + 1);
     };
 
     return (
@@ -43,9 +49,17 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                     </div>
                     {/* Right: Details & Skills */}
                     <div className="flex flex-col gap-4 flex-1">
-                        <h2 className="text-xl font-medium text-stone-800 tracking-tight">
-                            Collaborating with {employee.codename} <span className="text-zinc-500 font-normal ml-2">({employee.title})</span>
-                        </h2>
+                        <div className="flex justify-between items-start">
+                            <h2 className="text-xl font-medium text-stone-800 tracking-tight">
+                                Collaborating with {employee.codename} <span className="text-zinc-500 font-normal ml-2">({employee.title})</span>
+                            </h2>
+                            <button 
+                                onClick={handleStartNewChat}
+                                className="bg-zinc-800 hover:bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 active:scale-95"
+                            >
+                                Start New Chat
+                            </button>
+                        </div>
                         <p className="text-sm text-zinc-600 leading-relaxed max-w-2xl">{employee.description}</p>
                         <div className="mt-1">
                             <div className="font-semibold text-sm mb-3 text-zinc-800">Available Skills & Capabilities:</div>
@@ -81,7 +95,12 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
             {/* Middle & Bottom panel: Large AI Console */}
             {/* OpenCodeConsole is fixed size, input at bottom */}
             <Card className="shrink-0 h-[450px] flex flex-col overflow-hidden p-0 border-0 bg-transparent shadow-none">
-                <OpenCodeConsole selectedEmployee={employee} className="flex-1 overflow-hidden m-0" disableCard />
+                <OpenCodeConsole 
+                    key={`console-${consoleKey}`} 
+                    selectedEmployee={employee} 
+                    className="flex-1 overflow-hidden m-0" 
+                    disableCard 
+                />
             </Card>
         </div>
     );

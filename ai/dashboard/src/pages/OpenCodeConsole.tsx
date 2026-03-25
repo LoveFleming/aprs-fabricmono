@@ -15,11 +15,67 @@ export default function OpenCodeConsole({ selectedEmployee, className, disableCa
     const [openCodeInput, setOpenCodeInput] = useState("");
     const [isOpenCodeLoading, setIsOpenCodeLoading] = useState(false);
 
+    const [sessions, setSessions] = useState<Array<{ id: string; title?: string; updatedAt?: string }>>([]);
+    const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+
+    const fetchSessions = async () => {
+        setIsLoadingSessions(true);
+        try {
+            const client = createOpencodeClient({ baseUrl: "http://127.0.0.1:4096" });
+            const result = await client.session.list();
+            if (result.data) {
+                let list = Array.isArray(result.data) ? result.data : [];
+                if (selectedEmployee) {
+                    list = list.filter((s: any) => s.title && s.title.includes(selectedEmployee.codename));
+                }
+                setSessions(list as any);
+            }
+        } catch (err) {
+            console.error("Failed to fetch sessions", err);
+        } finally {
+            setIsLoadingSessions(false);
+        }
+    };
+
     // reset console when changing employees
     useEffect(() => {
         setOpenCodeMessages([]);
         setOpenCodeSessionId(null);
+        fetchSessions();
     }, [selectedEmployee]);
+
+    const loadSessionMessages = async (sid: string) => {
+        setOpenCodeSessionId(sid);
+        setOpenCodeMessages([]);
+        setIsOpenCodeLoading(true);
+        try {
+            const client = createOpencodeClient({ baseUrl: "http://127.0.0.1:4096" });
+            const msgs = await client.session.messages({ path: { id: sid } });
+            if (msgs.data) {
+                const next: Array<{ role: "user" | "assistant"; text: string; id?: string }> = [];
+                for (const m of (msgs.data as any[])) {
+                    const textParts = m.parts?.filter((p: any) => p.type === "text").map((p: any) => p.text) || [];
+                    if (textParts.length > 0) {
+                        next.push({
+                            role: m.info?.role === "assistant" ? "assistant" : "user",
+                            text: textParts.join("\n"),
+                            id: m.info?.id
+                        });
+                    }
+                }
+                setOpenCodeMessages(next);
+            }
+        } catch (err) {
+            console.error("Failed to load messages", err);
+        } finally {
+            setIsOpenCodeLoading(false);
+        }
+    };
+
+    const handleNewChat = () => {
+        setOpenCodeSessionId(null);
+        setOpenCodeMessages([]);
+    };
 
     const handleOpenCodeSubmit = async () => {
         if (!openCodeInput.trim() || isOpenCodeLoading) return;
@@ -36,13 +92,14 @@ export default function OpenCodeConsole({ selectedEmployee, className, disableCa
                 const title = selectedEmployee ? `Chat with ${selectedEmployee.codename}` : "Console Session";
                 const session = await client.session.create({ body: { title } });
                 if (!session.data) throw new Error("Failed to create session");
-                sid = session.data.id;
+                sid = (session.data as any).id;
                 setOpenCodeSessionId(sid);
+                fetchSessions();
             }
 
             let isDone = false;
             const promptPromise = client.session.prompt({
-                path: { id: sid },
+                path: { id: sid as string },
                 body: {
                     noReply: false,
                     system: selectedEmployee ? `You are ${selectedEmployee.codename}, a specialized AI employee (${selectedEmployee.title}).\n\nRole description: ${selectedEmployee.description}\n\nYour specific skills include:\n- ${selectedEmployee.skills.join('\n- ')}\n\nYou are expected to produce the following outputs:\n- ${selectedEmployee.outputs.join('\n- ')}\n\nStay in character and assist the user specifically using your skills and role boundaries.` : undefined,
@@ -56,7 +113,7 @@ export default function OpenCodeConsole({ selectedEmployee, className, disableCa
             });
 
             const pollMessages = async () => {
-                const msgs = await client.session.messages({ path: { id: sid } });
+                const msgs = await client.session.messages({ path: { id: sid as string } });
                 if (msgs.data) {
                     setOpenCodeMessages((prev) => {
                         const next = [...prev];
@@ -103,6 +160,38 @@ export default function OpenCodeConsole({ selectedEmployee, className, disableCa
                 </div>
             )}
             <div className={cn("rounded-xl bg-[#1e1e1e] p-4 font-mono text-sm text-zinc-300 flex flex-col gap-4 min-h-0", className)}>
+                <div className="flex items-center justify-between border-b border-zinc-700 pb-3 mb-1 shrink-0">
+                    <div className="flex items-center gap-2">
+                        <span className="text-zinc-400">Session:</span>
+                        <select 
+                            className="bg-zinc-800 text-zinc-300 border border-zinc-700 rounded px-2 py-1 outline-none text-xs max-w-xs cursor-pointer focus:border-blue-500"
+                            value={openCodeSessionId || ""}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (val) loadSessionMessages(val);
+                                else handleNewChat();
+                            }}
+                        >
+                            <option value="">-- New Session --</option>
+                            {sessions.map(s => {
+                                let label = s.title || s.id;
+                                if (s.updatedAt) {
+                                    const date = new Date(s.updatedAt);
+                                    label += ` (${date.toLocaleDateString()} ${date.toLocaleTimeString()})`;
+                                }
+                                return <option key={s.id} value={s.id}>{label}</option>;
+                            })}
+                        </select>
+                        {isLoadingSessions && <span className="text-xs text-zinc-500 animate-pulse">Loading...</span>}
+                    </div>
+                    <button 
+                        onClick={handleNewChat}
+                        className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1 rounded text-xs border border-zinc-700 transition-colors flex items-center gap-1 shadow-sm active:scale-95"
+                        title="Start a new chat session"
+                    >
+                        <span>+</span> New Chat
+                    </button>
+                </div>
                 <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-2 min-h-0">
                     {openCodeMessages.length === 0 && (
                         <div className="text-zinc-500 italic">No messages yet. Send a prompt to start.</div>
