@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "request": {
+      "$ref": "../../api/material/request.schema.json"
+    }
+  },
+  "required": [
+    "request"
+  ]
+}

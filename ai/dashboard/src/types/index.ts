@@ -77,3 +77,99 @@ export type DataContract = {
     sla: string;
     status: "active" | "deprecated" | "draft";
 };
+
+// Orchestrator Types
+export interface FlowStep {
+    stepId: string;
+    nodeId: string;
+    purpose: string;
+    input: string;
+    output: string;
+    onError: string;
+}
+
+export interface DecisionRule {
+    ruleId: string;
+    description: string;
+    when: string;
+    then: string;
+    errorCode?: string;
+}
+
+export interface ErrorPolicy {
+    kind: string;
+    policy: string;
+}
+
+export interface ErrorCodeDef {
+    code: string;
+    category: "BIZ" | "EXT" | "SYS";
+    description: string;
+}
+
+export interface MetricDef {
+    name: string;
+    description: string;
+    type: string;
+}
+
+export interface EventDef {
+    name: string;
+    trigger: string;
+}
+
+export interface NodeContract {
+    nodeId: string;
+    description: string;
+    inputSchema: any;
+    outputSchema: any;
+}
+
+export interface TestTargets {
+    happyPath: string[];
+    rejectCases: string[];
+    errorCases: string[];
+    contractValidation: string[];
+}
+
+export interface Orchestrator {
+    id: string;
+    name: string;
+    domain: string;
+    apiPath: string;
+    apiId: string;
+    version: string;
+    status: "active" | "draft" | "deprecated";
+    owner: string;
+    lastUpdated: string;
+    tags: string[];
+
+    summary: string;
+    userStoryMarkdown: string;
+
+    apiSpec: {
+        endpoint: string;
+        purpose: string;
+        requestSchema: any;
+        responseSchema: any;
+        requestExample: any;
+        responseExample: any;
+    };
+
+    orchestratorSpecMarkdown: string;
+    flowSteps: FlowStep[];
+    decisionRules: DecisionRule[];
+    
+    errorPolicy: ErrorPolicy[];
+    errorCodes: ErrorCodeDef[];
+    
+    observability: {
+        metrics: MetricDef[];
+        logFields: string[];
+        events: EventDef[];
+    };
+    
+    nodeContracts: NodeContract[];
+    runbookMarkdown: string;
+    testTargets: TestTargets;
+}

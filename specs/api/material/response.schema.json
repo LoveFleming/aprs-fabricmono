@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MaterialLotToolMaterialCheckResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "result": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "REJECT"
+      ]
+    },
+    "lotId": {
+      "type": "string"
+    },
+    "toolId": {
+      "type": "string"
+    },
+    "materialId": {
+      "type": "string"
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lotExists": {
+          "type": "boolean"
+        },
+        "lotStatus": {
+          "type": "string"
+        },
+        "toolExists": {
+          "type": "boolean"
+        },
+        "toolStatus": {
+          "type": "string"
+        },
+        "materialMatch": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "lotExists",
+        "lotStatus",
+        "toolExists",
+        "toolStatus",
+        "materialMatch"
+      ]
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "errorType": {
+          "type": "string"
+        },
+        "errorCode": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "errorType",
+        "errorCode",
+        "message"
+      ]
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "result": {
+            "const": "PASS"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "lotId",
+          "toolId",
+          "materialId",
+          "checks"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result": {
+            "const": "REJECT"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "error"
+        ]
+      }
+    }
+  ]
+}

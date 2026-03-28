@@ -17,6 +17,9 @@ import { createOpencodeClient } from "@opencode-ai/sdk/client";
 
 import OperationsCenter from "./pages/OperationsCenter";
 import OrchestratorViewer from "./pages/OrchestratorViewer";
+import OrchestratorOverview from "./pages/OrchestratorOverview";
+import OrchestratorWorkspace from "./pages/OrchestratorWorkspace";
+import { ORCHESTRATORS } from "./data/mockOrchestrators";
 import Runbooks from "./pages/Runbooks";
 import DataContracts from "./pages/DataContracts";
 import Storybook from "./pages/Storybook";
@@ -45,8 +48,8 @@ function groupByCategory(apps: PortalApp[]) {
 
 export default function App() {
   const [search, setSearch] = useState("");
-  const [activeAppId, setActiveAppId] = useState<string>("home");
-  const [openTabs, setOpenTabs] = useState<string[]>(["home"]);
+  const [activeAppId, setActiveAppId] = useState<string>("orchestrator-overview");
+  const [openTabs, setOpenTabs] = useState<string[]>(["orchestrator-overview"]);
 
   const openApp = (id: string) => {
     setOpenTabs((prev) => {
@@ -60,7 +63,7 @@ export default function App() {
     setOpenTabs((prev) => {
       const next = prev.filter((t) => t !== id);
       if (activeAppId === id) {
-        setActiveAppId(next.length > 0 ? next[next.length - 1] : "home");
+        setActiveAppId(next.length > 0 ? next[next.length - 1] : "orchestrator-overview");
       }
       return next;
     });
@@ -224,6 +227,12 @@ export default function App() {
     if (activeAppId.startsWith("api.")) {
        return `API: ${activeAppId.slice(4)}`;
     }
+    if (activeAppId === "orchestrator-overview") return "Orchestrator Registry";
+    if (activeAppId.startsWith("orch.")) {
+        const [, , oId] = activeAppId.split(".");
+        const o = ORCHESTRATORS.find(o => o.id === oId);
+        return o ? o.name : "Orchestrator Workspace";
+    }
     if (activeAppId === "home") return "Dashboard";
     return APPS.find((a) => a.id === activeAppId)?.title ?? "Dashboard";
   }, [activeAppId]);
@@ -237,6 +246,12 @@ export default function App() {
     if (id.startsWith("api.")) {
       return id.slice(4);
     }
+    if (id === "orchestrator-overview") return "Orchestrator Registry";
+    if (id.startsWith("orch.")) {
+        const [, , oId] = id.split(".");
+        const o = ORCHESTRATORS.find(o => o.id === oId);
+        return o ? o.name : id;
+    }
     if (id === "home") return "Dashboard";
     return APPS.find((a) => a.id === id)?.title ?? id;
   };
@@ -248,19 +263,33 @@ export default function App() {
       return emp ? emp.risk : "safe";
     }
     if (id.startsWith("api.")) return "safe";
+    if (id.startsWith("orch.")) {
+        const [, , oId] = id.split(".");
+        const o = ORCHESTRATORS.find(o => o.id === oId);
+        return o?.status === 'active' ? "safe" : o?.status === 'draft' ? "guarded" : "external";
+    }
+    if (id === "orchestrator-overview") return "safe";
     if (id === "home") return "safe";
     return APPS.find((a) => a.id === id)?.risk ?? "safe";
   };
 
   const nav = useMemo(() => {
+    const dMap: Record<string, string[]> = {};
+    dMap["Registry"] = ["orchestrator-overview"];
+    for (const o of ORCHESTRATORS) {
+      if (!dMap[o.domain]) dMap[o.domain] = [];
+      dMap[o.domain].push(`orch.${o.domain}.${o.id}`);
+    }
     return {
-      Overview: ["home"],
-      Workbench: (appGroups.get("Assets") ?? []).map((a) => a.id),
-      "AI Collaboration": (appGroups.get("Execution") ?? []).map((a) => a.id),
+      "Product Domains": dMap["Registry"],
+      ...Object.fromEntries(Object.entries(dMap).filter(([k]) => k !== "Registry")),
       "Ops Console": [
-        ...(appGroups.get("Monitoring") ?? []),
-        ...(appGroups.get("Investigation") ?? []),
-      ].map((a) => a.id),
+          "home", // old Ops Center
+          ...(appGroups.get("Monitoring") ?? []),
+          ...(appGroups.get("Investigation") ?? []),
+      ].map((a) => a), // Note mapping the old ones correctly if 'home' is a string
+      "AI Collaboration": (appGroups.get("Execution") ?? []).map((a) => a.id),
+      "Legacy Assets": (appGroups.get("Assets") ?? []).map((a) => a.id),
     } as Record<string, string[]>;
   }, [appGroups]);
 
@@ -345,6 +374,11 @@ export default function App() {
   }, [runs, todayIncidentCounts.P1, todayIncidentCounts.P2, todayIncidentCounts.P3]);
 
   const renderContent = () => {
+    if (activeAppId === "orchestrator-overview") return <OrchestratorOverview openApp={openApp} />;
+    if (activeAppId.startsWith("orch.")) {
+      const [, domain, orchId] = activeAppId.split(".");
+      return <OrchestratorWorkspace domain={domain} orchId={orchId} />;
+    }
     if (activeAppId === "home") return <OperationsCenter runs={runs} setActiveAppId={openApp} setSelectedRunId={setSelectedRunId} setSelectedIncidentId={setSelectedIncidentId} runSkill={runSkill} todayIncidentCounts={todayIncidentCounts} runCounts={runCounts} currentRuns={currentRuns} todayIncidents={todayIncidents} suggestions={suggestions} />;
     if (activeAppId === "assets.orchestrator") return <OrchestratorViewer />;
     if (activeAppId === "assets.runbooks") return <Runbooks />;
@@ -385,8 +419,10 @@ export default function App() {
         {/* Sidebar */}
         <aside className="w-64 bg-white border-r border-zinc-200 flex-shrink-0 overflow-y-auto flex flex-col py-2">
           <div className="flex flex-col">
-            {(Object.keys(nav) as string[]).map((cat) => (
-              <SidebarSection key={cat} title={cat}>
+            {(Object.keys(nav) as string[]).map((cat) => {
+              const domTitle = cat === "Product Domains" ? cat : ["Ops Console","Legacy Assets","AI Collaboration"].includes(cat) ? cat : `Domain: ${cat.toUpperCase()}`;
+              return (
+              <SidebarSection key={cat} title={domTitle}>
                 <div className="space-y-1">
                   {(nav[cat] ?? []).map((id) => {
                     const active = activeAppId === id;
@@ -432,7 +468,7 @@ export default function App() {
                   )}
                 >
                   <span className="truncate whitespace-nowrap">{labelFor(tabId)}</span>
-                  {tabId !== "home" && (
+                  {tabId !== "orchestrator-overview" && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "request": {
+      "$ref": "../../api/material/request.schema.json"
+    },
+    "lotInfo": {
+      "type": "object"
+    },
+    "toolInfo": {
+      "type": "object"
+    },
+    "materialCheck": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "request",
+    "lotInfo",
+    "toolInfo",
+    "materialCheck"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "validated": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "validated"
+  ]
+}
