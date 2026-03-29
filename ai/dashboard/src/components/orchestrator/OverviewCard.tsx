@@ -21,7 +21,7 @@ export default function OverviewCard({ orch }: { orch: Orchestrator }) {
                 </div>
                 <div>
                     <span className="text-zinc-500 block mb-1">Status</span>
-                    <span className={\`rounded-full border px-2 py-0.5 text-[10px] \${badgeClasses(orch.status === 'active' ? 'safe' : orch.status === 'draft' ? 'guarded' : 'external')}\`}>
+                    <span className={`rounded-full border px-2 py-0.5 text-[10px] ${badgeClasses(orch.status === 'active' ? 'safe' : orch.status === 'draft' ? 'guarded' : 'external')}`}>
                         {orch.status}
                     </span>
                 </div>

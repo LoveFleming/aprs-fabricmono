@@ -282,12 +282,11 @@ export default function App() {
     }
     return {
       "Product Domains": dMap["Registry"],
-      ...Object.fromEntries(Object.entries(dMap).filter(([k]) => k !== "Registry")),
       "Ops Console": [
           "home", // old Ops Center
-          ...(appGroups.get("Monitoring") ?? []),
-          ...(appGroups.get("Investigation") ?? []),
-      ].map((a) => a), // Note mapping the old ones correctly if 'home' is a string
+          ...(appGroups.get("Monitoring") ?? []).map((a) => a.id),
+          ...(appGroups.get("Investigation") ?? []).map((a) => a.id),
+      ], // Note mapping the old ones correctly if 'home' is a string
       "AI Collaboration": (appGroups.get("Execution") ?? []).map((a) => a.id),
       "Legacy Assets": (appGroups.get("Assets") ?? []).map((a) => a.id),
     } as Record<string, string[]>;
@@ -443,7 +442,8 @@ export default function App() {
                   })}
                 </div>
               </SidebarSection>
-            ))}
+            );
+            })}
           </div>
 
 

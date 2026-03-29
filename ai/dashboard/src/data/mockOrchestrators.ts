@@ -186,7 +186,7 @@ See the Decision Rules section for specific business error conditions.
             }
         ],
 
-        runbookMarkdown: \`
+        runbookMarkdown: `
 # Runbook: Lot Tool Material Check (material)
 
 ## BIZ_TOOL_NOT_UP
@@ -196,7 +196,7 @@ See the Decision Rules section for specific business error conditions.
 ## EXT_LOT_SERVICE_ERROR
 **Symptom**: 503 Service Unavailable during lot query.
 **Resolution**: Check Datadog for 'lot-service' health. If recovering, no action needed. If persistent, escalate to Team Core.
-\`,
+`,
 
         testTargets: {
             happyPath: [

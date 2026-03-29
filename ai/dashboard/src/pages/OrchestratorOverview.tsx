@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
-import { ORCHESTRATORS } from "../../data/mockOrchestrators";
-import { badgeClasses, cn } from "../../utils";
-import { Orchestrator } from "../../types";
+import { ORCHESTRATORS } from "../data/mockOrchestrators";
+import { badgeClasses, cn } from "../utils";
+import { Orchestrator } from "../types";
 
 export default function OrchestratorOverview({ openApp }: { openApp: (id: string) => void }) {
     const [search, setSearch] = useState("");
@@ -91,7 +91,7 @@ export default function OrchestratorOverview({ openApp }: { openApp: (id: string
                                     {items.map(orch => (
                                         <tr 
                                             key={orch.id} 
-                                            onClick={() => openApp(\`orch.\${orch.domain}.\${orch.id}\`)}
+                                            onClick={() => openApp(`orch.${orch.domain}.${orch.id}`)}
                                             className="hover:bg-blue-50/50 cursor-pointer transition-colors group"
                                         >
                                             <td className="px-4 py-3 font-mono text-xs text-blue-600 group-hover:underline">

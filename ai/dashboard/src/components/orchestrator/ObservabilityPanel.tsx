@@ -23,7 +23,7 @@ export default function ObservabilityPanel({
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {errorPolicy.map(p => (
                             <div key={p.kind} className="p-3 bg-zinc-50 border border-zinc-200 rounded text-sm">
-                                <span className={\`font-mono text-xs font-bold mr-2 \${p.kind === 'SYS' ? 'text-red-600' : p.kind === 'EXT' ? 'text-orange-600' : 'text-blue-600'}\`}>[{p.kind}]</span>
+                                <span className={`font-mono text-xs font-bold mr-2 ${p.kind === 'SYS' ? 'text-red-600' : p.kind === 'EXT' ? 'text-orange-600' : 'text-blue-600'}`}>[{p.kind}]</span>
                                 <span className="text-zinc-700">{p.policy}</span>
                             </div>
                         ))}

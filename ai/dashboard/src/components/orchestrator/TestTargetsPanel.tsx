@@ -21,8 +21,8 @@ function TargetSection({ title, items, color, bg, border, icon }: { title: strin
     if (!items || items.length === 0) return null;
     
     return (
-        <div className={\`p-3 rounded-lg border \${border} \${bg}\`}>
-            <h5 className={\`font-semibold text-sm mb-2 \${color} flex items-center gap-2\`}>
+        <div className={`p-3 rounded-lg border ${border} ${bg}`}>
+            <h5 className={`font-semibold text-sm mb-2 ${color} flex items-center gap-2`}>
                 <span>{icon}</span> {title}
             </h5>
             <ul className="space-y-1">

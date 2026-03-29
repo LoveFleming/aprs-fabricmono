@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { ORCHESTRATORS } from "../../data/mockOrchestrators";
+import { ORCHESTRATORS } from "../data/mockOrchestrators";
 import OverviewCard from "../components/orchestrator/OverviewCard";
 import MarkdownSection from "../components/orchestrator/MarkdownSection";
 import ApiSpecSection from "../components/orchestrator/ApiSpecSection";
@@ -36,7 +36,7 @@ export default function OrchestratorWorkspace({
     ];
 
     const scrollTo = (id: string) => {
-        document.getElementById(\`section-\${id}\`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
     return (
@@ -45,7 +45,7 @@ export default function OrchestratorWorkspace({
             <div className="flex-1 overflow-y-auto pr-6 custom-scrollbar pb-24 h-full relative" style={{ height: "calc(100vh - 120px)" }}>
                 <div className="space-y-8">
                     {sections.map(sec => sec.component ? (
-                        <div key={sec.id} id={\`section-\${sec.id}\`} className="scroll-mt-6">
+                        <div key={sec.id} id={`section-${sec.id}`} className="scroll-mt-6">
                             {sec.component}
                         </div>
                     ) : null)}
