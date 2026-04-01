@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, cn } from "../components/ui/shared";
 import { SKILLS } from "../data/mockData";
 import { Skill, CrewSkill, buildSystemPrompt } from "../types";
@@ -12,6 +12,8 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
     const employee = SKILLS.find((s) => s.id === employeeId);
     const [enabledSkills, setEnabledSkills] = useState<Record<string, boolean>>({});
     const [consoleKey, setConsoleKey] = useState(0);
+    const [systemPrompt, setSystemPrompt] = useState("");
+    const [chatStarted, setChatStarted] = useState(false);
 
     useEffect(() => {
         if (employee) {
@@ -19,6 +21,8 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
             employee.skills.forEach(s => { initial[s.id] = s.enabled; });
             setEnabledSkills(initial);
             setConsoleKey(0);
+            setChatStarted(false);
+            setSystemPrompt(buildSystemPrompt(employee, employee.skills.filter(s => s.enabled).map(s => s.id)));
         }
     }, [employee]);
 
@@ -28,33 +32,40 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
             .map(([k]) => k);
     }, [enabledSkills]);
 
-    const systemPrompt = useMemo(() => {
-        if (!employee) return "";
-        return buildSystemPrompt(employee, selectedSkillIds);
-    }, [employee, selectedSkillIds]);
+    const handleSkillToggle = useCallback((skillId: string) => {
+        setEnabledSkills(prev => {
+            const next = { ...prev, [skillId]: !prev[skillId] };
+            // Rebuild prompt preview
+            if (employee) {
+                const ids = Object.entries(next)
+                    .filter(([_, v]) => v)
+                    .map(([k]) => k);
+                setSystemPrompt(buildSystemPrompt(employee, ids));
+            }
+            return next;
+        });
+    }, [employee]);
+
+    const handleStartChat = () => {
+        // Rebuild console with latest system prompt
+        if (employee) {
+            setSystemPrompt(buildSystemPrompt(employee, selectedSkillIds));
+            setConsoleKey(prev => prev + 1);
+            setChatStarted(true);
+        }
+    };
 
     if (!employee) {
         return <div className="p-4 text-red-500">Employee not found.</div>;
     }
 
-    const toggleSkill = (skillId: string) => {
-        setEnabledSkills(prev => ({
-            ...prev,
-            [skillId]: !prev[skillId]
-        }));
-    };
-
-    const handleStartNewChat = () => {
-        setConsoleKey(prev => prev + 1);
-    };
-
     return (
         <div className="flex flex-col flex-1 min-h-0 gap-2 relative">
             {/* Top panel: Employee header and skills */}
-            <Card className="flex-1 overflow-y-auto min-h-0 p-4">
+            <Card className="flex-none overflow-y-auto p-4">
                 <div className="flex gap-6 items-start">
                     {/* Left: Employee Photo */}
-                    <div className="w-48 h-48 shrink-0 rounded-3xl overflow-hidden bg-orange-50/50 border border-orange-100 flex items-center justify-center p-4 shadow-sm">
+                    <div className="w-32 h-32 shrink-0 rounded-2xl overflow-hidden bg-orange-50/50 border border-orange-100 flex items-center justify-center p-3 shadow-sm">
                         <img
                             src={employee.imageUrl}
                             alt={employee.title}
@@ -62,22 +73,33 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                         />
                     </div>
                     {/* Right: Details & Skills */}
-                    <div className="flex flex-col gap-4 flex-1">
+                    <div className="flex flex-col gap-3 flex-1 min-w-0">
                         <div className="flex justify-between items-start">
-                            <h2 className="text-xl font-medium text-stone-800 tracking-tight">
-                                Collaborating with {employee.codename} <span className="text-zinc-500 font-normal ml-2">({employee.title})</span>
-                            </h2>
+                            <div>
+                                <h2 className="text-lg font-bold text-stone-800">
+                                    {employee.codename}
+                                    <span className="text-zinc-400 font-normal text-sm ml-2">({employee.title})</span>
+                                </h2>
+                                <p className="text-xs text-zinc-500 mt-0.5">{employee.description}</p>
+                            </div>
                             <button
-                                onClick={handleStartNewChat}
-                                className="bg-zinc-800 hover:bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 active:scale-95"
+                                onClick={handleStartChat}
+                                disabled={selectedSkillIds.length === 0}
+                                className={cn(
+                                    "px-4 py-2 rounded-xl text-sm font-bold transition-all shrink-0 ml-4",
+                                    selectedSkillIds.length > 0
+                                        ? "bg-orange-500 text-white hover:bg-orange-600 shadow-sm active:scale-95"
+                                        : "bg-zinc-100 text-zinc-400 cursor-not-allowed"
+                                )}
                             >
-                                Start New Chat
+                                💬 開始對話 ({selectedSkillIds.length} 技能)
                             </button>
                         </div>
-                        <p className="text-sm text-zinc-600 leading-relaxed max-w-2xl">{employee.description}</p>
-                        <div className="mt-1">
-                            <div className="font-semibold text-sm mb-3 text-zinc-800">
-                                Available Skills & Capabilities ({selectedSkillIds.length}/{employee.skills.length}):
+
+                        {/* Skill selection */}
+                        <div>
+                            <div className="font-semibold text-xs mb-2 text-zinc-600 uppercase tracking-wider">
+                                勾選要載入的技能
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 {employee.skills.map((skill: CrewSkill) => {
@@ -86,22 +108,19 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                                         <label
                                             key={skill.id}
                                             className={cn(
-                                                "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition-all",
+                                                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs cursor-pointer transition-all",
                                                 isSelected
-                                                    ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
-                                                    : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                                                    ? "border-orange-400 bg-orange-50 text-orange-700 shadow-sm"
+                                                    : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
                                             )}
                                         >
                                             <input
                                                 type="checkbox"
-                                                className="w-4 h-4 text-blue-600 rounded border-zinc-300 focus:ring-blue-500"
+                                                className="w-3.5 h-3.5 rounded border-zinc-300 accent-orange-500"
                                                 checked={isSelected}
-                                                onChange={() => toggleSkill(skill.id)}
+                                                onChange={() => handleSkillToggle(skill.id)}
                                             />
-                                            <div>
-                                                <span className="font-medium">{skill.name}</span>
-                                                <span className="text-xs text-zinc-400 ml-1.5">{skill.description}</span>
-                                            </div>
+                                            <span className="font-medium">{skill.name}</span>
                                         </label>
                                     );
                                 })}
@@ -111,25 +130,32 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                 </div>
             </Card>
 
-            {/* Prompt preview (collapsible) */}
-            <details className="group">
-                <summary className="text-xs text-zinc-400 cursor-pointer hover:text-zinc-600 px-2">
-                    📝 System Prompt 預覽 ({systemPrompt.length} 字元, {selectedSkillIds.length} 技能)
-                </summary>
-                <pre className="bg-zinc-900 text-green-400 p-3 rounded-xl text-[11px] whitespace-pre-wrap font-mono max-h-[200px] overflow-y-auto mt-1">
-                    {systemPrompt}
-                </pre>
-            </details>
-
-            {/* Middle & Bottom panel: Large AI Console */}
-            <Card className="shrink-0 h-[450px] flex flex-col overflow-hidden p-0 border-0 bg-transparent shadow-none">
-                <OpenCodeConsole
-                    key={`console-${consoleKey}`}
-                    selectedEmployee={employee}
-                    className="flex-1 overflow-hidden m-0"
-                    disableCard
-                />
-            </Card>
+            {/* Console area - always visible when chat started */}
+            {chatStarted ? (
+                <Card className="flex-1 min-h-0 flex flex-col overflow-hidden p-0 border-0 bg-transparent shadow-none">
+                    <OpenCodeConsole
+                        key={`console-${consoleKey}`}
+                        selectedEmployee={employee}
+                        className="flex-1 overflow-hidden m-0"
+                        disableCard
+                    />
+                </Card>
+            ) : (
+                <Card className="flex-1 min-h-0 flex items-center justify-center border-dashed border-2 border-zinc-200 bg-zinc-50/50">
+                    <div className="text-center space-y-2">
+                        <div className="text-4xl">🤖</div>
+                        <div className="text-sm text-zinc-400">勾選技能後點「開始對話」來啟動 Console</div>
+                        <details className="mt-4 text-left">
+                            <summary className="text-xs text-zinc-400 cursor-pointer hover:text-zinc-600 text-center">
+                                📝 預覽 System Prompt ({systemPrompt.length} 字元)
+                            </summary>
+                            <pre className="bg-zinc-900 text-green-400 p-4 rounded-xl text-[11px] whitespace-pre-wrap font-mono max-h-[300px] overflow-y-auto mt-2">
+                                {systemPrompt}
+                            </pre>
+                        </details>
+                    </div>
+                </Card>
+            )}
         </div>
     );
 }
