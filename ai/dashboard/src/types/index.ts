@@ -12,17 +12,53 @@ export type PortalApp = {
 
 export type SkillEngine = "deterministic" | "cline" | "opencode";
 
+export interface CrewSkill {
+    id: string;
+    name: string;
+    description: string;
+    enabled: boolean;
+    prompt: string;
+    knowledge?: string[];
+}
+
+export interface ChatConfig {
+    greeting?: string;
+    maxTokens?: number;
+    temperature?: number;
+    model?: string;
+}
+
 export type Skill = {
     id: string;
     title: string;
     codename: string;
     imageUrl: string;
-    skills: string[];
+    skills: CrewSkill[];
     outputs: string[];
     engine: SkillEngine;
     risk: Risk;
     description: string;
+    rolePrompt: string;
+    chatConfig?: ChatConfig;
 };
+
+export function buildSystemPrompt(crew: Skill, selectedSkillIds?: string[]): string {
+    const parts: string[] = [crew.rolePrompt];
+
+    const skillsToLoad = crew.skills.filter(
+        s => selectedSkillIds ? selectedSkillIds.includes(s.id) : s.enabled
+    );
+
+    for (const skill of skillsToLoad) {
+        parts.push(`\n## Skill: ${skill.name}\n${skill.prompt}`);
+    }
+
+    if (crew.outputs.length > 0) {
+        parts.push(`\n## 輸出格式\n你的輸出應包含以下文件：${crew.outputs.join(', ')}`);
+    }
+
+    return parts.join('\n\n');
+}
 
 export type RunStatus = "queued" | "running" | "success" | "failed";
 

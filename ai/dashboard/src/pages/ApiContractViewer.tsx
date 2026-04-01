@@ -2,9 +2,9 @@ import React from "react";
 import { Card } from "../components/ui/shared";
 import { cn } from "../utils";
 // @ts-ignore - Ignoring import resolution error
-import lotToolMaterialCheckSpec from "../../../../specs-old/api-contracts/api-lot-tool-material-check.json";
+import lotToolMaterialCheckSpec from "../../public/specs-old/api-contracts/api-lot-tool-material-check.json";
 // @ts-ignore - Ignoring import resolution error
-import lotToolChamberMaterialCheckSpec from "../../../../specs-old/api-contracts/api-lot-tool-chamber-material-check.json";
+import lotToolChamberMaterialCheckSpec from "../../public/specs-old/api-contracts/api-lot-tool-chamber-material-check.json";
 
 // We load all specs in a map for dynamic rendering
 const specMap: Record<string, any> = {
