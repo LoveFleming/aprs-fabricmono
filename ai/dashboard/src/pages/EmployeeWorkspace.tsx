@@ -14,6 +14,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
     const [consoleKey, setConsoleKey] = useState(0);
     const [systemPrompt, setSystemPrompt] = useState("");
     const [chatStarted, setChatStarted] = useState(false);
+    const [showPromptModal, setShowPromptModal] = useState(false);
 
     useEffect(() => {
         if (employee) {
@@ -82,18 +83,26 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                                 </h2>
                                 <p className="text-xs text-zinc-500 mt-0.5">{employee.description}</p>
                             </div>
-                            <button
-                                onClick={handleStartChat}
-                                disabled={selectedSkillIds.length === 0}
-                                className={cn(
-                                    "px-4 py-2 rounded-xl text-sm font-bold transition-all shrink-0 ml-4",
-                                    selectedSkillIds.length > 0
-                                        ? "bg-orange-500 text-white hover:bg-orange-600 shadow-sm active:scale-95"
-                                        : "bg-zinc-100 text-zinc-400 cursor-not-allowed"
-                                )}
-                            >
-                                💬 開始對話 ({selectedSkillIds.length} 技能)
-                            </button>
+                            <div className="flex items-center gap-2 shrink-0 ml-4">
+                                <button
+                                    onClick={() => setShowPromptModal(true)}
+                                    className="px-3 py-2 rounded-xl border border-zinc-200 text-xs font-medium text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300 transition-all"
+                                >
+                                    📝 提示詞
+                                </button>
+                                <button
+                                    onClick={handleStartChat}
+                                    disabled={selectedSkillIds.length === 0}
+                                    className={cn(
+                                        "px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                                        selectedSkillIds.length > 0
+                                            ? "bg-orange-500 text-white hover:bg-orange-600 shadow-sm active:scale-95"
+                                            : "bg-zinc-100 text-zinc-400 cursor-not-allowed"
+                                    )}
+                                >
+                                    💬 開始對話 ({selectedSkillIds.length} 技能)
+                                </button>
+                            </div>
                         </div>
 
                         {/* Skill selection */}
@@ -155,6 +164,42 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                         </details>
                     </div>
                 </Card>
+            )}
+            {/* Prompt preview modal */}
+            {showPromptModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPromptModal(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-[700px] max-w-[90vw] max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+                            <div>
+                                <h3 className="text-base font-bold text-zinc-800">📝 System Prompt 預覽</h3>
+                                <p className="text-xs text-zinc-400 mt-0.5">
+                                    {employee.codename} · {selectedSkillIds.length} 個技能 · {systemPrompt.length} 字元
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowPromptModal(false)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600 transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="px-5 py-3 border-b border-zinc-100 flex flex-wrap gap-1.5">
+                            {employee.skills.map(s => (
+                                <span key={s.id} className={cn(
+                                    "text-[10px] px-2 py-1 rounded-full",
+                                    selectedSkillIds.includes(s.id)
+                                        ? "bg-orange-100 text-orange-700"
+                                        : "bg-zinc-100 text-zinc-400 line-through"
+                                )}>
+                                    {selectedSkillIds.includes(s.id) ? '✓' : '✗'} {s.name}
+                                </span>
+                            ))}
+                        </div>
+                        <pre className="flex-1 overflow-y-auto bg-zinc-900 text-green-400 p-5 text-xs whitespace-pre-wrap font-mono rounded-b-2xl">
+                            {systemPrompt}
+                        </pre>
+                    </div>
+                </div>
             )}
         </div>
     );
