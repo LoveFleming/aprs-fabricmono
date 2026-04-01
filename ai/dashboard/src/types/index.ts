@@ -12,6 +12,16 @@ export type PortalApp = {
 
 export type SkillEngine = "deterministic" | "cline" | "opencode";
 
+export interface RequiredInput {
+    id: string;
+    label: string;
+    description: string;
+    placeholder: string;
+    required: boolean;
+    multiline?: boolean;
+    group?: string;  // 分組顯示
+}
+
 export interface CrewSkill {
     id: string;
     name: string;
@@ -19,6 +29,7 @@ export interface CrewSkill {
     enabled: boolean;
     prompt: string;
     knowledge?: string[];
+    requiredInputs?: RequiredInput[];
 }
 
 export interface ChatConfig {
@@ -42,7 +53,7 @@ export type Skill = {
     chatConfig?: ChatConfig;
 };
 
-export function buildSystemPrompt(crew: Skill, selectedSkillIds?: string[]): string {
+export function buildSystemPrompt(crew: Skill, selectedSkillIds?: string[], formData?: Record<string, string>): string {
     const parts: string[] = [crew.rolePrompt];
 
     const skillsToLoad = crew.skills.filter(
@@ -51,6 +62,16 @@ export function buildSystemPrompt(crew: Skill, selectedSkillIds?: string[]): str
 
     for (const skill of skillsToLoad) {
         parts.push(`\n## Skill: ${skill.name}\n${skill.prompt}`);
+    }
+
+    // Inject form data if provided
+    if (formData && Object.keys(formData).length > 0) {
+        parts.push('\n## 操作員提供的規格資料');
+        for (const [key, value] of Object.entries(formData)) {
+            if (value.trim()) {
+                parts.push(`### ${key}\n${value}`);
+            }
+        }
     }
 
     if (crew.outputs.length > 0) {
