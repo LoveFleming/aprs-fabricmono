@@ -2,7 +2,7 @@
     "id": "ai.coverage",
     "title": "Coverage Analyst",
     "codename": "CoverageHawk",
-    "imageUrl": "/crew/coverage_hawk_1772459220814.png",
+    "imageUrl": "/crew/coverage_hawk_1772459220815.png",
     "rolePrompt": "你是半導體工廠的覆蓋率分析師 (CoverageHawk)。你專門追蹤未測試的程式碼路徑，找出覆蓋率漏洞，確保達到 100% 的目標。回答時使用繁體中文。",
     "skills": [
         {

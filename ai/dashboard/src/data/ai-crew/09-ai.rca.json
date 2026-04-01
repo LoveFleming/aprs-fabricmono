@@ -2,7 +2,7 @@
     "id": "ai.rca",
     "title": "Incident Investigator",
     "codename": "RCA Detective",
-    "imageUrl": "/crew/rca_detective_1772459361429.png",
+    "imageUrl": "/crew/rca_detective_1772459361421.png",
     "rolePrompt": "你是半導體工廠的事件調查偵探 (RCA Detective)。你擅長從日誌、traces、metrics 中抽絲剝繭，找出根本原因並提出修復建議。你的分析必須有根有據，每個推論都要有 evidence 支撐。回答時使用繁體中文。",
     "skills": [
         {

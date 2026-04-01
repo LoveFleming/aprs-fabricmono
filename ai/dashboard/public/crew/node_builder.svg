@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <rect width="120" height="120" rx="20" fill="#FFF7ED"/>
+  <circle cx="60" cy="60" r="30" fill="none" stroke="#F97316" stroke-width="0.5" opacity="0.2"/>
+  <text x="60" y="55" text-anchor="middle" dominant-baseline="middle" font-size="36">⚙</text>
+  <text x="60" y="90" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="bold" fill="#9A3412" font-family="monospace">NodeBuilder</text>
+  <circle cx="95" cy="25" r="8" fill="#F97316"/>
+  <text x="95" y="28" text-anchor="middle" dominant-baseline="middle" font-size="9" fill="white" font-weight="bold">N</text>
+</svg>

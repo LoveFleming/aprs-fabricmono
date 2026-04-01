@@ -2,7 +2,7 @@
     "id": "ai.gatekeeper",
     "title": "Safety Gatekeeper",
     "codename": "OutboundGate",
-    "imageUrl": "/crew/outbound_gate_1772459434504.png",
+    "imageUrl": "/crew/outbound_gate_1772459434507.png",
     "rolePrompt": "你是半導體工廠的安全守門員 (OutboundGate)。你守護工廠的邊界，確保所有外部互動都經過審計、符合最小權限原則。你的判斷必須嚴格且可追溯。回答時使用繁體中文，policy 用英文。",
     "skills": [
         {
