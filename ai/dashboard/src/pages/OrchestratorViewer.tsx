@@ -9,7 +9,7 @@ export default function OrchestratorViewer() {
     if (!selectedFlow) return <div className="text-sm text-zinc-500">No flow selected.</div>;
 
     return (
-        <div className="space-y-4">
+        <div className="h-full overflow-y-auto space-y-4">
             <Card
                 title="Flow Spec"
                 right={
@@ -26,7 +26,7 @@ export default function OrchestratorViewer() {
                     </select>
                 }
             >
-                <div className="space-y-3">
+                <div className="h-full overflow-y-auto space-y-3">
                     <div className="text-sm font-semibold text-zinc-900">{selectedFlow.name}</div>
                     <div className="text-sm text-zinc-600">{selectedFlow.description}</div>
                     <CodeBlock text={selectedFlow.dsl} />
@@ -35,7 +35,7 @@ export default function OrchestratorViewer() {
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <Card title="Nodes & Gates">
-                    <div className="space-y-2">
+                    <div className="h-full overflow-y-auto space-y-2">
                         {selectedFlow.nodes.map((n) => (
                             <div key={n.id} className="rounded-xl border border-zinc-200 bg-white p-3">
                                 <div className="flex items-start justify-between gap-3">
@@ -55,7 +55,7 @@ export default function OrchestratorViewer() {
                 </Card>
 
                 <Card title="Execution Contract (Preview)">
-                    <div className="space-y-3">
+                    <div className="h-full overflow-y-auto space-y-3">
                         <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
                             <div className="font-semibold">Golden Path Contract</div>
                             <div className="mt-1 font-mono">inputs → node input contract → node output contract → runner record</div>

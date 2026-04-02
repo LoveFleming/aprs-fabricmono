@@ -399,7 +399,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-50 text-stone-900 font-sans selection:bg-blue-100">
+    <div className="h-screen flex flex-col bg-zinc-50 text-stone-900 font-sans selection:bg-blue-100 overflow-hidden">
       {/* Top Header */}
       <header className="h-14 flex items-center justify-between bg-white border-b border-zinc-200 px-4 shrink-0 shadow-sm z-10">
         <div className="flex items-center gap-4">

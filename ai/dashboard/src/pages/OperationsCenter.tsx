@@ -30,7 +30,7 @@ export default function OperationsCenter({
     suggestions,
 }: OperationsCenterProps) {
     return (
-        <div className="space-y-4">
+        <div className="h-full overflow-y-auto space-y-4">
             <div className="bg-white p-5 border-b border-zinc-200">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
@@ -132,7 +132,7 @@ export default function OperationsCenter({
                 </Card>
 
                 <Card title="Today Incidents" right={<span className="text-xs text-zinc-500">bundles</span>}>
-                    <div className="space-y-2">
+                    <div className="h-full overflow-y-auto space-y-2">
                         {todayIncidents.map((i) => (
                             <button
                                 key={i.id}
@@ -160,7 +160,7 @@ export default function OperationsCenter({
                 </Card>
 
                 <Card title="Suggested Next Steps">
-                    <div className="space-y-3">
+                    <div className="h-full overflow-y-auto space-y-3">
                         {suggestions.map((s) => (
                             <div key={s.id} className="rounded-2xl border border-zinc-200 bg-white p-3">
                                 <div className="flex items-start justify-between gap-3">

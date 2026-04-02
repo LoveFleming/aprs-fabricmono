@@ -3,9 +3,9 @@ import { Card } from "../components/ui/shared";
 
 export default function Storybook() {
     return (
-        <div className="space-y-4">
+        <div className="h-full overflow-y-auto space-y-4">
             <Card title="Node Storybook">
-                <div className="space-y-3">
+                <div className="h-full overflow-y-auto space-y-3">
                     <div className="text-sm text-zinc-700">A catalog of nodes with examples. This makes onboarding teachable.</div>
                     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                         {[

@@ -13,7 +13,7 @@ const specs = [
 
 export default function DataContracts({ openApp }: { openApp?: (id: string) => void }) {
     return (
-        <div className="space-y-6">
+        <div className="h-full overflow-y-auto space-y-6">
             <Card title="API Data Contracts Registry">
                 <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
                     <table className="w-full text-left text-sm whitespace-nowrap">
