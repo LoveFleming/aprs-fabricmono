@@ -10,7 +10,7 @@ interface AICrewProps {
 
 export default function AICrew({ openApp }: AICrewProps) {
     return (
-        <div className="flex flex-col space-y-4 h-full">
+        <div className="flex flex-col space-y-4 h-full overflow-y-auto">
             <Card title="AI Crew Members" className="border-0 shadow-none bg-transparent p-0">
                 <p className="text-xs text-zinc-400 mb-4 px-2">點選 Crew 開啟工作區，可以同時開多個員工的 tab</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-2 w-full">

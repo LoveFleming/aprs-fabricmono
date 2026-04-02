@@ -490,9 +490,7 @@ export default function App() {
           </div>
 
           <div className="flex-1 w-full px-6 py-2 flex flex-col min-h-0 overflow-hidden bg-zinc-50">
-            <div className="flex-1 min-h-0 overflow-y-auto">
             {renderContent()}
-            </div>
           </div>
         </main>
       </div>
