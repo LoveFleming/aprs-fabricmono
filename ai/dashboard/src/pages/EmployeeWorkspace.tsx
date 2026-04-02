@@ -341,6 +341,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                     <OpenCodeConsole
                         key={`console-${consoleKey}`}
                         selectedEmployee={employee}
+                        systemPrompt={systemPrompt}
                         className="flex-1 overflow-hidden m-0"
                         disableCard
                     />

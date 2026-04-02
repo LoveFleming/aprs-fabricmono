@@ -5,11 +5,12 @@ import { Skill } from "../types";
 
 interface OpenCodeConsoleProps {
     selectedEmployee?: Skill | null;
+    systemPrompt?: string;
     className?: string;
     disableCard?: boolean;
 }
 
-export default function OpenCodeConsole({ selectedEmployee, className, disableCard }: OpenCodeConsoleProps) {
+export default function OpenCodeConsole({ selectedEmployee, systemPrompt, className, disableCard }: OpenCodeConsoleProps) {
     const [openCodeSessionId, setOpenCodeSessionId] = useState<string | null>(null);
     const [openCodeMessages, setOpenCodeMessages] = useState<Array<{ role: "user" | "assistant"; text: string; id?: string }>>([]);
     const [openCodeInput, setOpenCodeInput] = useState("");
@@ -102,7 +103,7 @@ export default function OpenCodeConsole({ selectedEmployee, className, disableCa
                 path: { id: sid as string },
                 body: {
                     noReply: false,
-                    system: selectedEmployee ? `You are ${selectedEmployee.codename}, a specialized AI employee (${selectedEmployee.title}).\n\nRole description: ${selectedEmployee.description}\n\nYour specific skills include:\n- ${selectedEmployee.skills.join('\n- ')}\n\nYou are expected to produce the following outputs:\n- ${selectedEmployee.outputs.join('\n- ')}\n\nStay in character and assist the user specifically using your skills and role boundaries.` : undefined,
+                    system: systemPrompt || (selectedEmployee ? `You are ${selectedEmployee.codename}, a specialized AI employee (${selectedEmployee.title}).\n\nRole description: ${selectedEmployee.description}\n\nStay in character and assist the user specifically using your skills and role boundaries.` : undefined),
                     parts: [{ type: "text", text: inputText }],
                 },
             }).then(() => {
