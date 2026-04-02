@@ -38,58 +38,64 @@ function BriefingForm({ inputs, onSubmit, onCancel }: {
     };
 
     return (
-        <div className="flex flex-col gap-6 max-w-4xl mx-auto">
-            <div className="text-center space-y-1">
-                <h3 className="text-lg font-bold text-zinc-800">📋 工作需求表</h3>
-                <p className="text-xs text-zinc-500">請填寫以下資料，讓員工知道要做什麼。必填欄位標記 *</p>
+        <div className="flex flex-col h-full">
+            {/* Scrollable form area */}
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+                <div className="flex flex-col gap-6 max-w-4xl mx-auto">
+                    <div className="text-center space-y-1">
+                        <h3 className="text-lg font-bold text-zinc-800">📋 工作需求表</h3>
+                        <p className="text-xs text-zinc-500">請填寫以下資料，讓員工知道要做什麼。必填欄位標記 *</p>
+                    </div>
+
+                    {Array.from(groups.entries()).map(([groupName, groupInputs]) => (
+                        <Card key={groupName} title={groupName} className="p-4">
+                            <div className="space-y-4">
+                                {groupInputs.map(input => (
+                                    <div key={input.id}>
+                                        <label className="block text-sm font-semibold text-zinc-700 mb-1">
+                                            {input.label}
+                                            {input.required && <span className="text-red-500 ml-1">*</span>}
+                                        </label>
+                                        <p className="text-xs text-zinc-400 mb-1.5">{input.description}</p>
+                                        {input.multiline ? (
+                                            <textarea
+                                                value={formData[input.id] || ""}
+                                                onChange={e => handleChange(input.id, e.target.value)}
+                                                placeholder={input.placeholder}
+                                                rows={6}
+                                                className={cn(
+                                                    "w-full rounded-xl border bg-zinc-50 px-3 py-2 text-sm font-mono transition-colors",
+                                                    "placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400",
+                                                    input.required && !formData[input.id]?.trim()
+                                                        ? "border-red-200 bg-red-50/30"
+                                                        : "border-zinc-200"
+                                                )}
+                                            />
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                value={formData[input.id] || ""}
+                                                onChange={e => handleChange(input.id, e.target.value)}
+                                                placeholder={input.placeholder}
+                                                className={cn(
+                                                    "w-full rounded-xl border bg-zinc-50 px-3 py-2 text-sm font-mono transition-colors",
+                                                    "placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400",
+                                                    input.required && !formData[input.id]?.trim()
+                                                        ? "border-red-200 bg-red-50/30"
+                                                        : "border-zinc-200"
+                                                )}
+                                            />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    ))}
+                </div>
             </div>
 
-            {Array.from(groups.entries()).map(([groupName, groupInputs]) => (
-                <Card key={groupName} title={groupName} className="p-4">
-                    <div className="space-y-4">
-                        {groupInputs.map(input => (
-                            <div key={input.id}>
-                                <label className="block text-sm font-semibold text-zinc-700 mb-1">
-                                    {input.label}
-                                    {input.required && <span className="text-red-500 ml-1">*</span>}
-                                </label>
-                                <p className="text-xs text-zinc-400 mb-1.5">{input.description}</p>
-                                {input.multiline ? (
-                                    <textarea
-                                        value={formData[input.id] || ""}
-                                        onChange={e => handleChange(input.id, e.target.value)}
-                                        placeholder={input.placeholder}
-                                        rows={6}
-                                        className={cn(
-                                            "w-full rounded-xl border bg-zinc-50 px-3 py-2 text-sm font-mono transition-colors",
-                                            "placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400",
-                                            input.required && !formData[input.id]?.trim()
-                                                ? "border-red-200 bg-red-50/30"
-                                                : "border-zinc-200"
-                                        )}
-                                    />
-                                ) : (
-                                    <input
-                                        type="text"
-                                        value={formData[input.id] || ""}
-                                        onChange={e => handleChange(input.id, e.target.value)}
-                                        placeholder={input.placeholder}
-                                        className={cn(
-                                            "w-full rounded-xl border bg-zinc-50 px-3 py-2 text-sm font-mono transition-colors",
-                                            "placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400",
-                                            input.required && !formData[input.id]?.trim()
-                                                ? "border-red-200 bg-red-50/30"
-                                                : "border-zinc-200"
-                                        )}
-                                    />
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </Card>
-            ))}
-
-            <div className="flex items-center justify-between sticky bottom-0 bg-zinc-50 py-3 border-t border-zinc-100">
+            {/* Fixed bottom action bar */}
+            <div className="flex items-center justify-between px-6 py-3 bg-white border-t border-zinc-200 shrink-0">
                 <button
                     onClick={onCancel}
                     className="px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-500 hover:bg-zinc-100 transition-colors"
@@ -211,16 +217,14 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
         return <div className="p-4 text-red-500">Employee not found.</div>;
     }
 
-    // Show briefing form
+    // Show briefing form - full tab page
     if (showBriefing) {
         return (
-            <div className="flex flex-col flex-1 min-h-0 overflow-y-auto px-4 py-4">
-                <BriefingForm
-                    inputs={allRequiredInputs}
-                    onSubmit={handleBriefingSubmit}
-                    onCancel={() => setShowBriefing(false)}
-                />
-            </div>
+            <BriefingForm
+                inputs={allRequiredInputs}
+                onSubmit={handleBriefingSubmit}
+                onCancel={() => setShowBriefing(false)}
+            />
         );
     }
 
