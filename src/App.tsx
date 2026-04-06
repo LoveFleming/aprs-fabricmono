@@ -282,15 +282,15 @@ export default function App() {
       dMap[o.domain].push(`orch.${o.domain}.${o.id}`);
     }
     return {
+      "Factory Standards": (appGroups.get("Standards") ?? []).map((a) => a.id),
       "Product Domains": dMap["Registry"],
       ...Object.fromEntries(Object.entries(dMap).filter(([k]) => k !== "Registry")),
       "Ops Console": [
-          "home", // old Ops Center
+          "home",
           ...(appGroups.get("Monitoring") ?? []),
           ...(appGroups.get("Investigation") ?? []),
-      ].map((a) => a), // Note mapping the old ones correctly if 'home' is a string
+      ].map((a) => a),
       "AI Collaboration": (appGroups.get("Execution") ?? []).map((a) => a.id),
-      "Standards": (appGroups.get("Standards") ?? []).map((a) => a.id),
       "Legacy Assets": (appGroups.get("Assets") ?? []).map((a) => a.id),
     } as Record<string, string[]>;
   }, [appGroups]);
@@ -423,7 +423,7 @@ export default function App() {
         <aside className="w-64 bg-white border-r border-zinc-200 flex-shrink-0 overflow-y-auto flex flex-col py-2">
           <div className="flex flex-col">
             {(Object.keys(nav) as string[]).map((cat) => {
-              const domTitle = cat === "Product Domains" ? cat : ["Ops Console","Legacy Assets","AI Collaboration"].includes(cat) ? cat : `Domain: ${cat.toUpperCase()}`;
+              const domTitle = cat === "Product Domains" ? cat : ["Factory Standards","Ops Console","AI Collaboration","Legacy Assets"].includes(cat) ? cat : `Domain: ${cat.toUpperCase()}`;
               return <SidebarSection key={cat} title={domTitle}>
                 <div className="space-y-1">
                   {(nav[cat] ?? []).map((id) => {
