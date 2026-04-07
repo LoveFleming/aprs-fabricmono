@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const SPECS_DIR = path.resolve(__dirname, '../../specs');
+const SPECS_DIR = path.resolve(__dirname, '../../../specs');
 const OUTPUT = path.resolve(__dirname, '../public/data/specs-index.json');
 
 function walkDir(dir) {

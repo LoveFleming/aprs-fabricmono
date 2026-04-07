@@ -1,1 +1,387 @@
-[]
+[
+  {
+    "type": "README.md",
+    "path": "README.md",
+    "fileName": "README.md",
+    "format": "markdown",
+    "name": "README",
+    "preview": "# Material Lot Tool Material Check Spec Sample\n\n這份 sample 採用你指定的方式：\n\n- `api/`, `orchestrator/`, `runbook/`, `user-story/` 都可以再依 service domain 分層\n- 本 sample 以 `material/` 為例\n- 只有 `api` 與 `node` data contract 使用 JSON Schema\n- 其餘統一使用 Markdown\n- 觀測資訊與 error code 已直接放在 orchestrator spec，不另外開 observability/error-code 檔案\n"
+  },
+  {
+    "type": "api-contracts",
+    "path": "api-contracts/material/api-lot-tool-chamber-material-check.json",
+    "fileName": "api-lot-tool-chamber-material-check.json",
+    "format": "json",
+    "name": "api-lot-tool-chamber-material-check",
+    "data": {
+      "apiContract": {
+        "endpoint": "/api/lot-tool-chamber-material-check",
+        "method": "POST",
+        "description": "Check chamber material for lot tool"
+      }
+    }
+  },
+  {
+    "type": "api-contracts",
+    "path": "api-contracts/material/api-lot-tool-material-check.json",
+    "fileName": "api-lot-tool-material-check.json",
+    "format": "json",
+    "name": "api-lot-tool-material-check",
+    "data": {
+      "apiContract": {
+        "endpoint": "/api/lot-tool-material-check",
+        "method": "POST",
+        "description": "Check material for lot tool"
+      }
+    }
+  },
+  {
+    "type": "node-contracts",
+    "path": "node-contracts/material/node-build-response.input.schema.json",
+    "fileName": "node-build-response.input.schema.json",
+    "format": "json",
+    "name": "node-build-response.input.schema",
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "$ref": "../../api/material/request.schema.json"
+        },
+        "lotInfo": {
+          "type": "object"
+        },
+        "toolInfo": {
+          "type": "object"
+        },
+        "materialCheck": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "request",
+        "lotInfo",
+        "toolInfo",
+        "materialCheck"
+      ]
+    }
+  },
+  {
+    "type": "node-contracts",
+    "path": "node-contracts/material/node-build-response.output.schema.json",
+    "fileName": "node-build-response.output.schema.json",
+    "format": "json",
+    "name": "node-build-response.output.schema",
+    "data": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "title": "MaterialLotToolMaterialCheckResponse",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "result": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "REJECT"
+          ]
+        },
+        "lotId": {
+          "type": "string"
+        },
+        "toolId": {
+          "type": "string"
+        },
+        "materialId": {
+          "type": "string"
+        },
+        "checks": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "lotExists": {
+              "type": "boolean"
+            },
+            "lotStatus": {
+              "type": "string"
+            },
+            "toolExists": {
+              "type": "boolean"
+            },
+            "toolStatus": {
+              "type": "string"
+            },
+            "materialMatch": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "lotExists",
+            "lotStatus",
+            "toolExists",
+            "toolStatus",
+            "materialMatch"
+          ]
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "errorType": {
+              "type": "string"
+            },
+            "errorCode": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "errorType",
+            "errorCode",
+            "message"
+          ]
+        }
+      },
+      "required": [
+        "result"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "result": {
+                "const": "PASS"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "lotId",
+              "toolId",
+              "materialId",
+              "checks"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "result": {
+                "const": "REJECT"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "error"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "type": "node-contracts",
+    "path": "node-contracts/material/node-check-material.input.schema.json",
+    "fileName": "node-check-material.input.schema.json",
+    "format": "json",
+    "name": "node-check-material.input.schema",
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lotInfo": {
+          "type": "object"
+        },
+        "toolInfo": {
+          "type": "object"
+        },
+        "materialId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "lotInfo",
+        "toolInfo",
+        "materialId"
+      ]
+    }
+  },
+  {
+    "type": "node-contracts",
+    "path": "node-contracts/material/node-check-material.output.schema.json",
+    "fileName": "node-check-material.output.schema.json",
+    "format": "json",
+    "name": "node-check-material.output.schema",
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "match": {
+          "type": "boolean"
+        },
+        "finalResult": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "REJECT"
+          ]
+        }
+      },
+      "required": [
+        "match",
+        "finalResult"
+      ]
+    }
+  },
+  {
+    "type": "node-contracts",
+    "path": "node-contracts/material/node-query-lot.input.schema.json",
+    "fileName": "node-query-lot.input.schema.json",
+    "format": "json",
+    "name": "node-query-lot.input.schema",
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lotId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "lotId"
+      ]
+    }
+  },
+  {
+    "type": "node-contracts",
+    "path": "node-contracts/material/node-query-lot.output.schema.json",
+    "fileName": "node-query-lot.output.schema.json",
+    "format": "json",
+    "name": "node-query-lot.output.schema",
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "exists": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "exists",
+        "status"
+      ]
+    }
+  },
+  {
+    "type": "node-contracts",
+    "path": "node-contracts/material/node-query-tool.input.schema.json",
+    "fileName": "node-query-tool.input.schema.json",
+    "format": "json",
+    "name": "node-query-tool.input.schema",
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "toolId": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "toolId"
+      ]
+    }
+  },
+  {
+    "type": "node-contracts",
+    "path": "node-contracts/material/node-query-tool.output.schema.json",
+    "fileName": "node-query-tool.output.schema.json",
+    "format": "json",
+    "name": "node-query-tool.output.schema",
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "exists": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "exists",
+        "status"
+      ]
+    }
+  },
+  {
+    "type": "node-contracts",
+    "path": "node-contracts/material/node-validate-request.input.schema.json",
+    "fileName": "node-validate-request.input.schema.json",
+    "format": "json",
+    "name": "node-validate-request.input.schema",
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "$ref": "../../api/material/request.schema.json"
+        }
+      },
+      "required": [
+        "request"
+      ]
+    }
+  },
+  {
+    "type": "node-contracts",
+    "path": "node-contracts/material/node-validate-request.output.schema.json",
+    "fileName": "node-validate-request.output.schema.json",
+    "format": "json",
+    "name": "node-validate-request.output.schema",
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "validated": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "validated"
+      ]
+    }
+  },
+  {
+    "type": "orchestrator",
+    "path": "orchestrator/material/orch-lot-tool-material-check.md",
+    "fileName": "orch-lot-tool-material-check.md",
+    "format": "markdown",
+    "name": "orch-lot-tool-material-check",
+    "preview": "# Orchestrator Spec v1\n\n## Metadata\n- Orchestrator ID: orch-material-lot-tool-material-check\n- Orchestrator Name: MaterialLotToolMaterialCheckOrchestrator\n- Service Domain: material\n- API ID: api-material-lot-tool-material-check\n- API Path: `/api/v1/material/lot-tool-material-check`\n- Version: 1.0.0\n- Status: draft\n- Owner: APRS-MATERIAL\n\n## Use Case Summary\n這支 orchestrator 負責單一 use case：檢查指定 lot、tool、material 是否符合執行條件，並回傳 PASS 或 REJECT。\n\n## Scope\n### In Scope\n- validate request\n- query lot\n- qu"
+  },
+  {
+    "type": "runbook",
+    "path": "runbook/material/rb-lot-tool-material-check.md",
+    "fileName": "rb-lot-tool-material-check.md",
+    "format": "markdown",
+    "name": "rb-lot-tool-material-check",
+    "preview": "# Runbook v1 - material / lot-tool-material-check\n\n## Metadata\n- Runbook ID: rb-material-lot-tool-material-check\n- Service Domain: material\n- API ID: api-material-lot-tool-material-check\n- Orchestrator ID: orch-material-lot-tool-material-check\n- Version: 1.0.0\n\n## Purpose\n處理 `material / lot-tool-material-check` API 的 reject / error 狀況，協助值班人員快速定位問題。\n\n## Quick Triage\n1. 確認 API path 與 request payload\n2. 依 `traceId` 查詢 log\n3. 先看 `errorType`\n4. 再看 `errorCode`\n5. 確認失敗 stepId / nodeId\n6. 決定是資料問題、外部依賴問題"
+  },
+  {
+    "type": "user-story",
+    "path": "user-story/material/us-lot-tool-material-check.md",
+    "fileName": "us-lot-tool-material-check.md",
+    "format": "markdown",
+    "name": "us-lot-tool-material-check",
+    "preview": "# User Story Spec v1\n\n## Metadata\n- User Story ID: us-material-lot-tool-material-check\n- Service Domain: material\n- API ID: api-material-lot-tool-material-check\n- Orchestrator ID: orch-material-lot-tool-material-check\n- Status: draft\n- Version: 1.0.0\n\n## Title\nLot Tool Material Check\n\n## Goal\n在執行 material 相關作業前，先檢查指定的 lot、tool、material 是否符合條件，避免不合法組合進入後續流程。\n\n## Actor\n- Upstream system\n- Operator\n\n## Trigger\n呼叫 `POST /api/v1/material/lot-tool-material-check`\n\n## Business Value\n- 提前阻擋不合法 lot / too"
+  }
+]
