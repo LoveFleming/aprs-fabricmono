@@ -1,6 +1,5 @@
 // Build-time script: scans specs/ directory and generates public/data/specs-index.json
-// Run: node scripts/generate-specs-index.js
-// This index is fetched at runtime by the dashboard
+// Usage: node scripts/generate-specs-index.js
 
 const fs = require('fs');
 const path = require('path');
@@ -8,14 +7,13 @@ const path = require('path');
 const SPECS_DIR = path.resolve(__dirname, '../../specs');
 const OUTPUT = path.resolve(__dirname, '../public/data/specs-index.json');
 
-function walk(dir) {
+function walkDir(dir) {
   const results = [];
   if (!fs.existsSync(dir)) return results;
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      results.push(...walk(full));
+      results.push(...walkDir(full));
     } else if (entry.isFile()) {
       results.push(full);
     }
@@ -24,19 +22,16 @@ function walk(dir) {
 }
 
 function buildIndex() {
-  const files = walk(SPECS_DIR);
+  const files = walkDir(SPECS_DIR);
   const specsRoot = SPECS_DIR;
   const index = [];
 
   for (const file of files) {
-    const rel = path.relative(specsRoot, file); // e.g. "api-contracts/material/api-lot-tool-material-check.json"
+    const rel = path.relative(specsRoot, file).replace(/\\/g, '/');
     const ext = path.extname(file);
-    const parts = rel.split(path.sep);
-    const contractType = parts[0]; // "api-contracts", "node-contracts", etc.
-
-    // For files in material/ subdirectory
+    const parts = rel.split('/');
+    const contractType = parts[0];
     const fileName = path.basename(file);
-    const dir = parts.slice(0, -1).join('/');
 
     if (ext === '.json') {
       try {
@@ -44,7 +39,6 @@ function buildIndex() {
         index.push({
           type: contractType,
           path: rel,
-          dir,
           fileName,
           format: 'json',
           name: fileName.replace(/\.json$/, ''),
@@ -54,23 +48,21 @@ function buildIndex() {
         // skip invalid JSON
       }
     } else if (ext === '.md') {
-      const content = fs.readFileSync(file, 'utf8');
-      index.push({
-        type: contractType,
-        path: rel,
-        dir,
-        fileName,
-        format: 'markdown',
-        name: fileName.replace(/\.md$/, ''),
-        preview: content.slice(0, 200),
-      });
+        const content = fs.readFileSync(file, 'utf8');
+        index.push({
+            type: contractType,
+            path: rel,
+            fileName,
+            format: 'markdown',
+            name: fileName.replace(/\.md$/, ''),
+            preview: content.slice(0, 500),
+        });
     }
   }
 
-  // Ensure output directory exists
   fs.mkdirSync(path.dirname(OUTPUT), { recursive: true });
   fs.writeFileSync(OUTPUT, JSON.stringify(index, null, 2));
-  console.log(`✅ Generated specs-index.json with ${index.length} entries`);
+  console.log('Generated specs-index.json with ' + index.length + ' entries');
 }
 
 buildIndex();
