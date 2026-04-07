@@ -3,8 +3,8 @@ import { Card } from "../components/ui/shared";
 import { cn } from "../utils";
 
 // Load specs
-import lotToolMaterialCheckSpec from "../../../../specs/api-contracts/api-lot-tool-material-check.json";
-import lotToolChamberMaterialCheckSpec from "../../../../specs/api-contracts/api-lot-tool-chamber-material-check.json";
+import lotToolMaterialCheckSpec from "../../../../specs/api/material/api-lot-tool-material-check.json";
+import lotToolChamberMaterialCheckSpec from "../../../../specs/api/material/api-lot-tool-chamber-material-check.json";
 
 const specs = [
     lotToolMaterialCheckSpec,

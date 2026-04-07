@@ -1,8 +1,8 @@
 import React from "react";
 import { Card } from "../components/ui/shared";
 import { cn } from "../utils";
-import lotToolMaterialCheckSpec from "../../../../specs/api-contracts/api-lot-tool-material-check.json";
-import lotToolChamberMaterialCheckSpec from "../../../../specs/api-contracts/api-lot-tool-chamber-material-check.json";
+import lotToolMaterialCheckSpec from "../../../../specs/api/material/api-lot-tool-material-check.json";
+import lotToolChamberMaterialCheckSpec from "../../../../specs/api/material/api-lot-tool-chamber-material-check.json";
 
 // We load all specs in a map for dynamic rendering
 const specMap: Record<string, any> = {
