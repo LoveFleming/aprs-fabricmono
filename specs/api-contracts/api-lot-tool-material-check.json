@@ -1,0 +1,7 @@
+{
+  "apiContract": {
+    "endpoint": "/api/lot-tool-material-check",
+    "method": "POST",
+    "description": "Check material for lot tool"
+  }
+}

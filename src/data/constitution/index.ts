@@ -1,19 +1,20 @@
 // Constitution sections - driven by markdown files
-// To add/edit content, modify the .md files in this directory
+// To add/edit content, modify the .md files in the constitution/ directory at project root
+// After editing, refresh the UI to see changes
 
-import manifesto from './01-manifesto.md?raw';
-import corePrinciples from './02-core-principles.md?raw';
-import architectureLayering from './03-architecture-layering.md?raw';
-import specDriven from './04-spec-driven.md?raw';
-import nodeDesign from './05-node-design.md?raw';
-import orchestrator from './06-orchestrator.md?raw';
-import errorCode from './07-error-code.md?raw';
-import observability from './08-observability.md?raw';
-import testing from './09-testing.md?raw';
-import releaseFailFast from './10-release-fail-fast.md?raw';
-import aiEmployee from './11-ai-employee.md?raw';
-import codingGuardrails from './12-coding-guardrails.md?raw';
-import promptMemory from './13-prompt-memory.md?raw';
+import manifesto from '../../../constitution/01-manifesto.md?raw';
+import corePrinciples from '../../../constitution/02-core-principles.md?raw';
+import architectureLayering from '../../../constitution/03-architecture-layering.md?raw';
+import specDriven from '../../../constitution/04-spec-driven.md?raw';
+import nodeDesign from '../../../constitution/05-node-design.md?raw';
+import orchestrator from '../../../constitution/06-orchestrator.md?raw';
+import errorCode from '../../../constitution/07-error-code.md?raw';
+import observability from '../../../constitution/08-observability.md?raw';
+import testing from '../../../constitution/09-testing.md?raw';
+import releaseFailFast from '../../../constitution/10-release-fail-fast.md?raw';
+import aiEmployee from '../../../constitution/11-ai-employee.md?raw';
+import codingGuardrails from '../../../constitution/12-coding-guardrails.md?raw';
+import promptMemory from '../../../constitution/13-prompt-memory.md?raw';
 
 export interface ConstitutionSection {
   id: string;
