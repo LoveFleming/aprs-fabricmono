@@ -1,23 +1,60 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "../utils";
-import { CONSTITUTION_SECTIONS } from "../data/constitution";
+import { loadConstitution, ConstitutionSection, clearConstitutionCache } from "../data/constitution";
 
 export default function Constitution() {
-  const [activeId, setActiveId] = useState(CONSTITUTION_SECTIONS[0]?.id ?? "");
+  const [sections, setSections] = useState<ConstitutionSection[]>([]);
+  const [activeId, setActiveId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
-  const activeSection = CONSTITUTION_SECTIONS.find((s) => s.id === activeId);
+  useEffect(() => {
+    loadConstitution().then((data) => {
+      setSections(data);
+      if (data.length > 0) setActiveId(data[0].id);
+      setLoading(false);
+    });
+  }, []);
+
+  const activeSection = sections.find((s) => s.id === activeId);
+
+  const handleRefresh = () => {
+    clearConstitutionCache();
+    setLoading(true);
+    loadConstitution().then((data) => {
+      setSections(data);
+      if (data.length > 0) setActiveId(data[0].id);
+      setLoading(false);
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full text-zinc-400 text-sm">
+        Loading constitution...
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full gap-0">
       {/* Sidebar */}
-      <aside className="w-56 shrink-0 bg-white border-r border-zinc-200 overflow-y-auto py-3 px-2">
-        <h2 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2 px-2">
-          🏛️ Constitution v1
-        </h2>
-        <div className="space-y-0.5">
-          {CONSTITUTION_SECTIONS.map((s) => (
+      <aside className="w-56 shrink-0 bg-white border-r border-zinc-200 overflow-y-auto py-3 px-2 flex flex-col">
+        <div className="flex items-center justify-between mb-2 px-2">
+          <h2 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+            🏛️ Constitution
+          </h2>
+          <button
+            onClick={handleRefresh}
+            className="text-[10px] text-blue-500 hover:text-blue-700 font-medium"
+            title="Reload from server"
+          >
+            🔄
+          </button>
+        </div>
+        <div className="space-y-0.5 flex-1">
+          {sections.map((s) => (
             <button
               key={s.id}
               onClick={() => setActiveId(s.id)}
@@ -31,6 +68,9 @@ export default function Constitution() {
               {s.icon} {s.title}
             </button>
           ))}
+        </div>
+        <div className="px-2 pt-2 border-t border-zinc-100 text-[9px] text-zinc-400">
+          {sections.length} sections loaded
         </div>
       </aside>
 

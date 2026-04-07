@@ -64,7 +64,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                         <div className="mt-1">
                             <div className="font-semibold text-sm mb-3 text-zinc-800">Available Skills & Capabilities:</div>
                             <div className="flex flex-wrap gap-2">
-                                {employee.skills.map((skill) => {
+                                {(employee.skills as string[]).map((skill: string) => {
                                     const isSelected = selectedSkills.includes(skill);
                                     return (
                                         <label

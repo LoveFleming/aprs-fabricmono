@@ -76,8 +76,12 @@ export const APPS: PortalApp[] = [
     },
 ];
 
-const crewModules = import.meta.glob('../../../crew/*.json', { eager: true });
-export const SKILLS: Skill[] = Object.values(crewModules).map((mod: any) => mod.default || mod) as Skill[];
+// SKILLS now loaded at runtime via loadCrew() in AICrew.tsx
+export { loadCrew, clearCrewCache } from "./crew";
+export type { CrewSkill } from "./crew";
+
+// Legacy: empty array for type compatibility
+export const SKILLS: any[] = [];
 
 export const FLOWS: FlowSpec[] = [
     {

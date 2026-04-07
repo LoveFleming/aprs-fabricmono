@@ -1,20 +1,6 @@
-// Constitution sections - driven by markdown files
-// To add/edit content, modify the .md files in the constitution/ directory at project root
-// After editing, refresh the UI to see changes
-
-import manifesto from '../../../constitution/01-manifesto.md?raw';
-import corePrinciples from '../../../constitution/02-core-principles.md?raw';
-import architectureLayering from '../../../constitution/03-architecture-layering.md?raw';
-import specDriven from '../../../constitution/04-spec-driven.md?raw';
-import nodeDesign from '../../../constitution/05-node-design.md?raw';
-import orchestrator from '../../../constitution/06-orchestrator.md?raw';
-import errorCode from '../../../constitution/07-error-code.md?raw';
-import observability from '../../../constitution/08-observability.md?raw';
-import testing from '../../../constitution/09-testing.md?raw';
-import releaseFailFast from '../../../constitution/10-release-fail-fast.md?raw';
-import aiEmployee from '../../../constitution/11-ai-employee.md?raw';
-import codingGuardrails from '../../../constitution/12-coding-guardrails.md?raw';
-import promptMemory from '../../../constitution/13-prompt-memory.md?raw';
+// Constitution sections - loaded at runtime from public/data/constitution/
+// To add/edit content, modify the .md files in public/data/constitution/
+// No rebuild needed - just refresh the browser!
 
 export interface ConstitutionSection {
   id: string;
@@ -23,6 +9,22 @@ export interface ConstitutionSection {
   title: string;
   content: string;
 }
+
+const SECTION_FILES = [
+  '01-manifesto.md',
+  '02-core-principles.md',
+  '03-architecture-layering.md',
+  '04-spec-driven.md',
+  '05-node-design.md',
+  '06-orchestrator.md',
+  '07-error-code.md',
+  '08-observability.md',
+  '09-testing.md',
+  '10-release-fail-fast.md',
+  '11-ai-employee.md',
+  '12-coding-guardrails.md',
+  '13-prompt-memory.md',
+];
 
 function parseTitle(content: string): { icon: string; title: string } {
   const firstLine = content.split('\n')[0] || '';
@@ -37,24 +39,31 @@ function parseTitle(content: string): { icon: string; title: string } {
   return { icon: '📄', title: 'Untitled' };
 }
 
-function section(raw: string, file: string): ConstitutionSection {
-  const { icon, title } = parseTitle(raw);
-  const id = file.replace(/\.md$/, '');
-  return { id, file, icon, title, content: raw };
+let _cache: ConstitutionSection[] | null = null;
+
+export async function loadConstitution(): Promise<ConstitutionSection[]> {
+  if (_cache) return _cache;
+
+  const base = '/data/constitution/';
+  const sections: ConstitutionSection[] = [];
+
+  for (const file of SECTION_FILES) {
+    try {
+      const res = await fetch(base + file);
+      if (!res.ok) continue;
+      const raw = await res.text();
+      const { icon, title } = parseTitle(raw);
+      const id = file.replace(/\.md$/, '');
+      sections.push({ id, file, icon, title, content: raw });
+    } catch {
+      // skip missing files
+    }
+  }
+
+  _cache = sections;
+  return sections;
 }
 
-export const CONSTITUTION_SECTIONS: ConstitutionSection[] = [
-  section(manifesto, '01-manifesto'),
-  section(corePrinciples, '02-core-principles'),
-  section(architectureLayering, '03-architecture-layering'),
-  section(specDriven, '04-spec-driven'),
-  section(nodeDesign, '05-node-design'),
-  section(orchestrator, '06-orchestrator'),
-  section(errorCode, '07-error-code'),
-  section(observability, '08-observability'),
-  section(testing, '09-testing'),
-  section(releaseFailFast, '10-release-fail-fast'),
-  section(aiEmployee, '11-ai-employee'),
-  section(codingGuardrails, '12-coding-guardrails'),
-  section(promptMemory, '13-prompt-memory'),
-];
+export function clearConstitutionCache() {
+  _cache = null;
+}
