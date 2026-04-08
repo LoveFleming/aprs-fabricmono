@@ -282,23 +282,14 @@ export default function App() {
   };
 
   const nav = useMemo(() => {
-    const dMap: Record<string, string[]> = {};
-    dMap["Registry"] = ["orchestrator-overview"];
-    for (const o of ORCHESTRATORS) {
-      if (!dMap[o.domain]) dMap[o.domain] = [];
-      dMap[o.domain].push(`orch.${o.domain}.${o.id}`);
-    }
     return {
       "Factory Standards": (appGroups.get("Standards") ?? []).map((a) => a.id),
-      "Product Domains": dMap["Registry"],
-      ...Object.fromEntries(Object.entries(dMap).filter(([k]) => k !== "Registry")),
       "Ops Console": [
           "home",
           ...(appGroups.get("Monitoring") ?? []).map((a: any) => a.id),
           ...(appGroups.get("Investigation") ?? []).map((a: any) => a.id),
       ],
       "AI Collaboration": (appGroups.get("Execution") ?? []).map((a) => a.id),
-      "Legacy Assets": (appGroups.get("Assets") ?? []).map((a) => a.id),
     } as Record<string, string[]>;
   }, [appGroups]);
 
@@ -436,7 +427,7 @@ export default function App() {
         <aside className="w-64 bg-white border-r border-zinc-200 flex-shrink-0 overflow-y-auto flex flex-col py-2">
           <div className="flex flex-col">
             {(Object.keys(nav) as string[]).map((cat) => {
-              const domTitle = cat === "Product Domains" ? cat : ["Factory Standards","Ops Console","AI Collaboration","Legacy Assets"].includes(cat) ? cat : `Domain: ${cat.toUpperCase()}`;
+              const domTitle = cat;
               return <SidebarSection key={cat} title={domTitle}>
                 <div className="space-y-1">
                   {(nav[cat] ?? []).map((id) => {

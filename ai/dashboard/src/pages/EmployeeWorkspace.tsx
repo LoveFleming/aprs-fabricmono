@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, cn } from "../components/ui/shared";
-import { SKILLS } from "../data/mockData";
+import { loadCrew, CrewSkill } from "../data/crew";
 import OpenCodeConsole from "./OpenCodeConsole";
 
 interface EmployeeWorkspaceProps {
@@ -8,17 +8,23 @@ interface EmployeeWorkspaceProps {
 }
 
 export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps) {
-    const employee = SKILLS.find((s) => s.id === employeeId);
-    // Initially, select the first 2 skills as an example or all
+    const [employee, setEmployee] = useState<CrewSkill | null>(null);
+    const [loading, setLoading] = useState(true);
     const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
     const [consoleKey, setConsoleKey] = useState(0);
 
     useEffect(() => {
-        if (employee) {
-            setSelectedSkills(employee.skills);
-            setConsoleKey(0); // Reset console on employee change
-        }
-    }, [employee]);
+        loadCrew().then((data) => {
+            const found = data.find((s) => s.id === employeeId);
+            setEmployee(found ?? null);
+            if (found) setSelectedSkills((found as any).skills ?? []);
+            setLoading(false);
+        });
+    }, [employeeId]);
+
+    if (loading) {
+        return <div className="p-4 text-zinc-400 text-sm">Loading employee...</div>;
+    }
 
     if (!employee) {
         return <div className="p-4 text-red-500">Employee not found.</div>;
@@ -64,7 +70,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                         <div className="mt-1">
                             <div className="font-semibold text-sm mb-3 text-zinc-800">Available Skills & Capabilities:</div>
                             <div className="flex flex-wrap gap-2">
-                                {(employee.skills as string[]).map((skill: string) => {
+                                {(employee as any).skills?.map((skill: string) => {
                                     const isSelected = selectedSkills.includes(skill);
                                     return (
                                         <label
@@ -97,7 +103,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
             <Card className="shrink-0 h-[450px] flex flex-col overflow-hidden p-0 border-0 bg-transparent shadow-none">
                 <OpenCodeConsole 
                     key={`console-${consoleKey}`} 
-                    selectedEmployee={employee} 
+                    selectedEmployee={employee as any} 
                     className="flex-1 overflow-hidden m-0" 
                     disableCard 
                 />
