@@ -294,9 +294,9 @@ export default function App() {
       ...Object.fromEntries(Object.entries(dMap).filter(([k]) => k !== "Registry")),
       "Ops Console": [
           "home",
-          ...(appGroups.get("Monitoring") ?? []),
-          ...(appGroups.get("Investigation") ?? []),
-      ].map((a) => a),
+          ...(appGroups.get("Monitoring") ?? []).map((a: any) => a.id),
+          ...(appGroups.get("Investigation") ?? []).map((a: any) => a.id),
+      ],
       "AI Collaboration": (appGroups.get("Execution") ?? []).map((a) => a.id),
       "Legacy Assets": (appGroups.get("Assets") ?? []).map((a) => a.id),
     } as Record<string, string[]>;
