@@ -33,7 +33,8 @@ import Constitution from "./pages/Constitution";
 import { Card, RiskBadge, CodeBlock, SidebarSection, NavItem } from "./components/ui/shared";
 import { AppCategory, PortalApp, SkillEngine, Skill, RunStatus, Run, FlowSpec, Runbook, IncidentBundle, DataContract, Risk } from "./types";
 import { nowIso, fmtTime, cn, shortId, safeJsonParse, randId, badgeClasses, statusClasses } from "./utils";
-import { APPS, SKILLS, FLOWS, RUNBOOKS, INCIDENTS, DATA_CONTRACTS } from "./data/mockData";
+import { APPS, FLOWS, RUNBOOKS, INCIDENTS, DATA_CONTRACTS } from "./data/mockData";
+import { loadCrew, CrewSkill } from "./data/crew";
 
 
 
@@ -74,6 +75,12 @@ export default function App() {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(INCIDENTS[0]?.id ?? null);
+
+  // Load crew at runtime
+  const [crew, setCrew] = useState<CrewSkill[]>([]);
+  useEffect(() => {
+    loadCrew().then(setCrew).catch(() => {});
+  }, []);
 
   const appGroups = useMemo(() => groupByCategory(APPS), []);
 
@@ -222,8 +229,8 @@ export default function App() {
   const currentAppTitle = useMemo(() => {
     if (activeAppId.startsWith("employee.")) {
       const empId = activeAppId.slice(9);
-      const emp = SKILLS.find(s => s.id === empId);
-      return emp ? emp.title : "Employee Workspace";
+      const emp = crew.find(s => s.id === empId);
+      return emp ? (emp.title || emp.codename || "Employee Workspace") : "Employee Workspace";
     }
     if (activeAppId.startsWith("api.")) {
        return `API: ${activeAppId.slice(4)}`;
@@ -241,8 +248,8 @@ export default function App() {
   const labelFor = (id: string) => {
     if (id.startsWith("employee.")) {
       const empId = id.slice(9);
-      const emp = SKILLS.find(s => s.id === empId);
-      return emp ? emp.codename : id;
+      const emp = crew.find(s => s.id === empId);
+      return emp ? (emp.codename || emp.title || id) : id;
     }
     if (id.startsWith("api.")) {
       return id.slice(4);
@@ -260,7 +267,7 @@ export default function App() {
   const riskForApp = (id: string): Risk => {
     if (id.startsWith("employee.")) {
       const empId = id.slice(9);
-      const emp = SKILLS.find(s => s.id === empId);
+      const emp = crew.find(s => s.id === empId);
       return emp ? emp.risk : "safe";
     }
     if (id.startsWith("api.")) return "safe";
@@ -344,36 +351,42 @@ export default function App() {
 
     const runbookGap = INCIDENTS.some((i) => i.summary.toLowerCase().includes("runbook missing"));
     if (runbookGap) {
-      const runbookMaker = SKILLS.find((s) => s.id === "ai.runbook")!;
+      const runbookMaker = crew.find((s) => s.id === "ai.runbook");
+      if (runbookMaker) {
+        next.push({
+          id: "sug.q4",
+          title: "Close runbook gaps (RunbookMedic)",
+          desc: "Run Runbook Maker to catch missing error-code ↔ runbook mappings.",
+          cta: { label: "Run RunbookMedic", action: () => { void runSkill(runbookMaker as any); } },
+          risk: "safe",
+        });
+      }
+    }
+
+    const codegen = crew.find((s) => s.id === "ai.unit");
+    if (codegen) {
       next.push({
-        id: "sug.q4",
-        title: "Close runbook gaps (RunbookMedic)",
-        desc: "Run Runbook Maker to catch missing error-code ↔ runbook mappings.",
-        cta: { label: "Run RunbookMedic", action: () => { void runSkill(runbookMaker); } },
+        id: "sug.codegen",
+        title: "Generate tests from spec (UnitSmith)",
+        desc: "Use Unit Test Assistant to draft tests and implementation.",
+        cta: { label: "Run UnitSmith", action: () => { void runSkill(codegen as any); } },
         risk: "safe",
       });
     }
 
-    const codegen = SKILLS.find((s) => s.id === "ai.unit")!;
-    next.push({
-      id: "sug.codegen",
-      title: "Generate tests from spec (UnitSmith)",
-      desc: "Use Unit Test Assistant to draft tests and implementation.",
-      cta: { label: "Run UnitSmith", action: () => { void runSkill(codegen); } },
-      risk: "safe",
-    });
-
-    const gatekeeper = SKILLS.find((s) => s.id === "ai.gatekeeper")!;
-    next.push({
-      id: "sug.pr",
-      title: "Prepare PR (OutboundGate)",
-      desc: "External action is locked by default. This demonstrates manual approval workflow.",
-      cta: { label: "Ask Gatekeeper", action: () => { void runSkill(gatekeeper); } },
-      risk: "external",
-    });
+    const gatekeeper = crew.find((s) => s.id === "ai.gatekeeper");
+    if (gatekeeper) {
+      next.push({
+        id: "sug.pr",
+        title: "Prepare PR (OutboundGate)",
+        desc: "External action is locked by default. This demonstrates manual approval workflow.",
+        cta: { label: "Ask Gatekeeper", action: () => { void runSkill(gatekeeper as any); } },
+        risk: "external",
+      });
+    }
 
     return next.slice(0, 5);
-  }, [runs, todayIncidentCounts.P1, todayIncidentCounts.P2, todayIncidentCounts.P3]);
+  }, [runs, todayIncidentCounts.P1, todayIncidentCounts.P2, todayIncidentCounts.P3, crew]);
 
   const renderContent = () => {
     if (activeAppId === "orchestrator-overview") return <OrchestratorOverview openApp={openApp} />;
