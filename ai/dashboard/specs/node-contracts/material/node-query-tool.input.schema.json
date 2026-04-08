@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "toolId": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "toolId"
+  ]
+}

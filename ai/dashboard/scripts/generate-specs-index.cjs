@@ -4,7 +4,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const SPECS_DIR = path.resolve(__dirname, '../../../specs');
+const SPECS_DIR = fs.existsSync(path.resolve(__dirname, '../../../specs'))
+  ? path.resolve(__dirname, '../../../specs')  // local dev
+  : path.resolve(__dirname, '../specs');          // Vercel build (copied)
 const OUTPUT = path.resolve(__dirname, '../public/data/specs-index.json');
 
 function walkDir(dir) {
