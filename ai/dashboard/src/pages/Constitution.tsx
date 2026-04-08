@@ -38,16 +38,16 @@ export default function Constitution() {
   }
 
   return (
-    <div className="flex h-full gap-0">
+    <div className="flex h-full gap-0 min-h-0">
       {/* Sidebar */}
       <aside className="w-56 shrink-0 bg-white border-r border-zinc-200 overflow-y-auto py-3 px-2 flex flex-col">
         <div className="flex items-center justify-between mb-2 px-2">
-          <h2 className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+          <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
             🏛️ Constitution
           </h2>
           <button
             onClick={handleRefresh}
-            className="text-[10px] text-blue-500 hover:text-blue-700 font-medium"
+            className="text-xs text-blue-500 hover:text-blue-700 font-medium"
             title="Reload from server"
           >
             🔄
@@ -59,7 +59,7 @@ export default function Constitution() {
               key={s.id}
               onClick={() => setActiveId(s.id)}
               className={cn(
-                "w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors",
+                "w-full text-left px-2 py-1.5 rounded-md text-sm transition-colors",
                 activeId === s.id
                   ? "bg-blue-50 text-blue-700 font-medium"
                   : "text-zinc-600 hover:bg-zinc-50"
@@ -69,13 +69,13 @@ export default function Constitution() {
             </button>
           ))}
         </div>
-        <div className="px-2 pt-2 border-t border-zinc-100 text-[9px] text-zinc-400">
+        <div className="px-2 pt-2 border-t border-zinc-100 text-xs text-zinc-400">
           {sections.length} sections loaded
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto px-8 py-6">
+      <main className="flex-1 overflow-y-auto px-8 py-6 min-h-0">
         {activeSection ? (
           <article className="prose prose-zinc prose-sm max-w-3xl">
             <ReactMarkdown

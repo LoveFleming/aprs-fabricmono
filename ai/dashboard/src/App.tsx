@@ -465,7 +465,7 @@ export default function App() {
         </aside>
 
         {/* Main */}
-        <main className="flex-1 overflow-y-auto bg-zinc-50 flex flex-col">
+        <main className="flex-1 overflow-hidden bg-zinc-50 flex flex-col">
 
           {/* Tabs */}
           <div className="flex w-full items-end gap-1 overflow-x-auto bg-zinc-100 px-4 pt-2 border-b border-zinc-200">
@@ -504,7 +504,7 @@ export default function App() {
             })}
           </div>
 
-          <div className="flex-1 w-full px-6 py-2 flex flex-col min-h-0 bg-zinc-50">
+          <div className="flex-1 w-full px-6 py-2 flex flex-col min-h-0 overflow-hidden bg-zinc-50">
             {renderContent()}
           </div>
         </main>
