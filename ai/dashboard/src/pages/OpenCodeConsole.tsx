@@ -7,9 +7,10 @@ interface OpenCodeConsoleProps {
     selectedEmployee?: Skill | null;
     className?: string;
     disableCard?: boolean;
+    initialMessage?: string;
 }
 
-export default function OpenCodeConsole({ selectedEmployee, className, disableCard }: OpenCodeConsoleProps) {
+export default function OpenCodeConsole({ selectedEmployee, className, disableCard, initialMessage }: OpenCodeConsoleProps) {
     const [openCodeSessionId, setOpenCodeSessionId] = useState<string | null>(null);
     const [openCodeMessages, setOpenCodeMessages] = useState<Array<{ role: "user" | "assistant"; text: string; id?: string }>>([]);
     const [openCodeInput, setOpenCodeInput] = useState("");
@@ -43,6 +44,13 @@ export default function OpenCodeConsole({ selectedEmployee, className, disableCa
         setOpenCodeSessionId(null);
         fetchSessions();
     }, [selectedEmployee]);
+
+    // Auto-send initial message if provided — populate input field
+    useEffect(() => {
+        if (initialMessage && openCodeMessages.length === 0 && !openCodeSessionId) {
+            setOpenCodeInput(initialMessage);
+        }
+    }, [initialMessage]);
 
     const loadSessionMessages = async (sid: string) => {
         setOpenCodeSessionId(sid);
