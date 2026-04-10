@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "pregenerate-specs": "node scripts/generate-specs-index.cjs",
-    "dev": "vite",
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:opencode\"",
     "build": "npm run pregenerate-specs && tsc -b && vite build",
+    "dev:vite": "vite",
+    "dev:opencode": "opencode serve --port 4096",
     "preview": "vite preview"
   },
   "dependencies": {
