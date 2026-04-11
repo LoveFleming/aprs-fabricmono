@@ -30,7 +30,7 @@ export default function OperationsCenter({
     suggestions,
 }: OperationsCenterProps) {
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 h-full overflow-y-auto">
             <div className="bg-white p-5 border-b border-zinc-200">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>

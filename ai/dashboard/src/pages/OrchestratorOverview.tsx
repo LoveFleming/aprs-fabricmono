@@ -34,7 +34,7 @@ export default function OrchestratorOverview({ openApp }: { openApp: (id: string
     }, [filtered]);
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-300">
+        <div className="space-y-6 animate-in fade-in duration-300 h-full overflow-y-auto">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Orchestrator Registry</h1>

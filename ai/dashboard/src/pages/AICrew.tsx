@@ -29,7 +29,7 @@ export default function AICrew({ runSkill, openApp }: AICrewProps) {
     }
 
     return (
-        <div className="flex flex-col space-y-4 h-full">
+        <div className="flex flex-col space-y-4 h-full overflow-y-auto">
             <div className="flex items-center justify-between px-2">
                 <h2 className="text-lg font-bold text-zinc-800">AI Crew Members</h2>
                 <button

@@ -33,7 +33,7 @@ export default function ApiContractViewer({ apiName }: { apiName: string }) {
 
     if (!specData || !specData.data) {
         return (
-            <div className="space-y-6">
+            <div className="space-y-6 h-full overflow-y-auto">
                 <Card title="API Data Contract">
                     <div className="p-6 text-red-500">Contract not found: {apiName}</div>
                 </Card>
@@ -45,7 +45,7 @@ export default function ApiContractViewer({ apiName }: { apiName: string }) {
     const apiContract = data.apiContract;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 h-full overflow-y-auto">
             <Card title={`API Contract: ${specData.name}`}>
                 <div className="rounded-2xl border border-zinc-200 bg-white p-6">
                     <div className="flex items-start justify-between gap-3 border-b border-zinc-100 pb-4">

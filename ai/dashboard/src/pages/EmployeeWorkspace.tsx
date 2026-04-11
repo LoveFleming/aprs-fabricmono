@@ -153,8 +153,8 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
     };
 
     return (
-        <div className="flex flex-col flex-1 min-h-0 gap-2 relative">
-            <Card className="flex-1 overflow-y-auto min-h-0 p-4">
+        <div className="flex flex-col flex-1 min-h-0 gap-2 relative overflow-y-auto">
+            <Card className="flex-none p-4">
                 <div className="flex gap-6 items-start">
                     {/* Left: Employee Photo */}
                     <div className="w-48 h-48 shrink-0 rounded-3xl overflow-hidden bg-orange-50/50 border border-orange-100 flex items-center justify-center p-4 shadow-sm">

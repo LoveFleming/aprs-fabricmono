@@ -13,7 +13,7 @@ export default function Runbooks() {
     }, [runbookQuery]);
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 h-full overflow-y-auto">
             <Card
                 title="Runbook Library"
                 right={
