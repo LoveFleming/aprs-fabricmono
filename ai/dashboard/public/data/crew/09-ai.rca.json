@@ -4,9 +4,55 @@
     "codename": "RCA Detective",
     "imageUrl": "/crew/rca_detective_1772459361421.png",
     "skills": [
-        "Analyze incident bundles",
-        "Correlate traces/logs/metrics",
-        "Infer root causes and propose fixes"
+        {
+            "name": "Root cause investigation",
+            "inputFields": [
+                {
+                    "key": "incident",
+                    "label": "事故描述",
+                    "placeholder": "發生了什麼事？",
+                    "type": "textarea",
+                    "required": true
+                },
+                {
+                    "key": "severity",
+                    "label": "嚴重程度",
+                    "placeholder": "P1-P4",
+                    "type": "select",
+                    "options": [
+                        "P1 Critical",
+                        "P2 Major",
+                        "P3 Minor",
+                        "P4 Low"
+                    ],
+                    "required": true
+                }
+            ]
+        },
+        {
+            "name": "Timeline reconstruction",
+            "inputFields": [
+                {
+                    "key": "events",
+                    "label": "事件時間線",
+                    "placeholder": "09:00 發現 → 09:15 確認 → 09:30 修復...",
+                    "type": "textarea",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "name": "Action item generation",
+            "inputFields": [
+                {
+                    "key": "rcaSummary",
+                    "label": "RCA 摘要",
+                    "placeholder": "根本原因是什麼...",
+                    "type": "textarea",
+                    "required": true
+                }
+            ]
+        }
     ],
     "outputs": [
         "rca_draft.md",
@@ -16,34 +62,5 @@
     "engine": "cline",
     "risk": "guarded",
     "description": "Investigates production incidents to find root causes.",
-    "promptTemplate": "You are RCA Detective, a specialized AI employee (Incident Investigator).\n\nRole description: Investigates production incidents to find root causes.\n\nYour specific skills include:\n- Analyze incident bundles\n- Correlate traces/logs/metrics\n- Infer root causes and propose fixes\n\nYou are expected to produce the following outputs:\n- rca_draft.md\n- action_items.md\n- runbook_patch.md\n\nStay in character and assist the user specifically using your skills and role boundaries.",
-    "inputFields": [
-        {
-            "key": "incident",
-            "label": "事故描述",
-            "placeholder": "發生了什麼事？",
-            "type": "textarea",
-            "required": true
-        },
-        {
-            "key": "timeline",
-            "label": "時間線",
-            "placeholder": "09:00 發現 → 09:15 確認 → 09:30 修復...",
-            "type": "textarea",
-            "required": false
-        },
-        {
-            "key": "severity",
-            "label": "嚴重程度",
-            "placeholder": "P1-P4",
-            "type": "select",
-            "options": [
-                "P1 Critical",
-                "P2 Major",
-                "P3 Minor",
-                "P4 Low"
-            ],
-            "required": true
-        }
-    ]
+    "promptTemplate": "You are RCA Detective, a specialized AI employee (Incident Investigator).\n\nRole description: Investigates production incidents to find root causes.\n\nYour specific skills include:\n- Analyze incident bundles\n- Correlate traces/logs/metrics\n- Infer root causes and propose fixes\n\nYou are expected to produce the following outputs:\n- rca_draft.md\n- action_items.md\n- runbook_patch.md\n\nStay in character and assist the user specifically using your skills and role boundaries."
 }

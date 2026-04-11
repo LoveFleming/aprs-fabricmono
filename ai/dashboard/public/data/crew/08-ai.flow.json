@@ -4,9 +4,56 @@
     "codename": "FlowInspector",
     "imageUrl": "/crew/flow_inspector_1772459346076.png",
     "skills": [
-        "Review flow spec/DSL",
-        "Check node responsibility boundaries",
-        "Highlight key risk points"
+        {
+            "name": "Validate orchestration logic",
+            "inputFields": [
+                {
+                    "key": "flowName",
+                    "label": "Flow 名稱",
+                    "placeholder": "Order Processing Flow",
+                    "type": "text",
+                    "required": true
+                },
+                {
+                    "key": "steps",
+                    "label": "流程步驟",
+                    "placeholder": "Controller → Service → Orchestrator → Node...",
+                    "type": "textarea",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "name": "Dependency graph analysis",
+            "inputFields": [
+                {
+                    "key": "nodes",
+                    "label": "Node 列表",
+                    "placeholder": "列出所有 node 和依賴關係...",
+                    "type": "textarea",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "name": "Retry/fallback design",
+            "inputFields": [
+                {
+                    "key": "step",
+                    "label": "失敗步驟",
+                    "placeholder": "哪個步驟會失敗...",
+                    "type": "text",
+                    "required": true
+                },
+                {
+                    "key": "fallback",
+                    "label": "期望的降級策略",
+                    "placeholder": "重試3次 → 通知 → 人工處理...",
+                    "type": "textarea",
+                    "required": true
+                }
+            ]
+        }
     ],
     "outputs": [
         "flow_review_comments.md",
@@ -16,28 +63,5 @@
     "engine": "deterministic",
     "risk": "safe",
     "description": "Validates orchestration logic and architectural patterns.",
-    "promptTemplate": "You are FlowInspector, a specialized AI employee (Flow Orchestrator Reviewer).\n\nRole description: Validates orchestration logic and architectural patterns.\n\nYour specific skills include:\n- Review flow spec/DSL\n- Check node responsibility boundaries\n- Highlight key risk points\n\nYou are expected to produce the following outputs:\n- flow_review_comments.md\n- observability_suggestions.json\n- refactoring_list.md\n\nStay in character and assist the user specifically using your skills and role boundaries.",
-    "inputFields": [
-        {
-            "key": "flowName",
-            "label": "Flow 名稱",
-            "placeholder": "例如：Order Processing Flow",
-            "type": "text",
-            "required": true
-        },
-        {
-            "key": "steps",
-            "label": "流程步驟",
-            "placeholder": "步驟1 → 步驟2 → 步驟3...",
-            "type": "textarea",
-            "required": true
-        },
-        {
-            "key": "trigger",
-            "label": "觸發條件",
-            "placeholder": "API call / Event / Schedule...",
-            "type": "text",
-            "required": false
-        }
-    ]
+    "promptTemplate": "You are FlowInspector, a specialized AI employee (Flow Orchestrator Reviewer).\n\nRole description: Validates orchestration logic and architectural patterns.\n\nYour specific skills include:\n- Review flow spec/DSL\n- Check node responsibility boundaries\n- Highlight key risk points\n\nYou are expected to produce the following outputs:\n- flow_review_comments.md\n- observability_suggestions.json\n- refactoring_list.md\n\nStay in character and assist the user specifically using your skills and role boundaries."
 }

@@ -4,9 +4,56 @@
     "codename": "PlaywrightPilot",
     "imageUrl": "/crew/playwright_pilot_1772459312560.png",
     "skills": [
-        "Generate/Maintain E2E scripts",
-        "Golden Path verification",
-        "Regression testing strategy (Q3)"
+        {
+            "name": "E2E test generation",
+            "inputFields": [
+                {
+                    "key": "flow",
+                    "label": "測試流程",
+                    "placeholder": "登入 → 瀏覽 → 加購物車 → 結帳...",
+                    "type": "textarea",
+                    "required": true
+                },
+                {
+                    "key": "baseUrl",
+                    "label": "目標 URL",
+                    "placeholder": "http://localhost:3000",
+                    "type": "text",
+                    "required": false
+                }
+            ]
+        },
+        {
+            "name": "Visual regression setup",
+            "inputFields": [
+                {
+                    "key": "pages",
+                    "label": "頁面列表",
+                    "placeholder": "/home, /products, /checkout...",
+                    "type": "textarea",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "name": "Performance benchmark",
+            "inputFields": [
+                {
+                    "key": "url",
+                    "label": "目標 URL",
+                    "placeholder": "https://example.com",
+                    "type": "text",
+                    "required": true
+                },
+                {
+                    "key": "metrics",
+                    "label": "量測指標",
+                    "placeholder": "LCP, FID, CLS...",
+                    "type": "text",
+                    "required": false
+                }
+            ]
+        }
     ],
     "outputs": [
         "playwright_scripts.ts",
@@ -16,28 +63,5 @@
     "engine": "deterministic",
     "risk": "safe",
     "description": "Orchestrates end-to-end user journey tests.",
-    "promptTemplate": "You are PlaywrightPilot, a specialized AI employee (E2E Runner).\n\nRole description: Orchestrates end-to-end user journey tests.\n\nYour specific skills include:\n- Generate/Maintain E2E scripts\n- Golden Path verification\n- Regression testing strategy (Q3)\n\nYou are expected to produce the following outputs:\n- playwright_scripts.ts\n- failure_reproduction_steps.md\n- flaky_test_report.json\n\nStay in character and assist the user specifically using your skills and role boundaries.",
-    "inputFields": [
-        {
-            "key": "flow",
-            "label": "測試流程描述",
-            "placeholder": "用戶登入 → 瀏覽商品 → 加入購物車 → 結帳...",
-            "type": "textarea",
-            "required": true
-        },
-        {
-            "key": "baseUrl",
-            "label": "目標 URL",
-            "placeholder": "http://localhost:3000",
-            "type": "text",
-            "required": false
-        },
-        {
-            "key": "assertions",
-            "label": "預期結果",
-            "placeholder": "應該看到什麼、回傳什麼...",
-            "type": "textarea",
-            "required": false
-        }
-    ]
+    "promptTemplate": "You are PlaywrightPilot, a specialized AI employee (E2E Runner).\n\nRole description: Orchestrates end-to-end user journey tests.\n\nYour specific skills include:\n- Generate/Maintain E2E scripts\n- Golden Path verification\n- Regression testing strategy (Q3)\n\nYou are expected to produce the following outputs:\n- playwright_scripts.ts\n- failure_reproduction_steps.md\n- flaky_test_report.json\n\nStay in character and assist the user specifically using your skills and role boundaries."
 }

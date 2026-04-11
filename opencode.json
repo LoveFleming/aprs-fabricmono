@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "opencode-skill-creator"
+  ],
+  "agent": {
+    "little-fleming": {
+      "name": "Little Fleming",
+      "mode": "subagent",
+      "description": "A creative AI assistant specialized in skill creation. He can create, test, optimize, and install OpenCode skills. He follows the skill-creator methodology: interview → draft → eval → refine → install. Friendly and encouraging tone.",
+      "tools": ["bash", "read", "write", "edit", "list", "glob", "grep", "webfetch"]
+    }
+  }
+}

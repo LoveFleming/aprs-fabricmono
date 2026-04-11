@@ -4,9 +4,61 @@
     "codename": "OutboundGate",
     "imageUrl": "/crew/outbound_gate_1772459434507.png",
     "skills": [
-        "Audit external interactions (PR/API)",
-        "Manage allowlists/denylists",
-        "Maintain audit trails"
+        {
+            "name": "Audit external interactions",
+            "inputFields": [
+                {
+                    "key": "target",
+                    "label": "審查目標",
+                    "placeholder": "PR / API endpoint / 部署...",
+                    "type": "text",
+                    "required": true
+                },
+                {
+                    "key": "url",
+                    "label": "相關 URL",
+                    "placeholder": "GitHub PR link...",
+                    "type": "text",
+                    "required": false
+                }
+            ]
+        },
+        {
+            "name": "Manage allowlists/denylists",
+            "inputFields": [
+                {
+                    "key": "action",
+                    "label": "操作",
+                    "placeholder": "新增或移除",
+                    "type": "select",
+                    "options": [
+                        "新增至 allowlist",
+                        "新增至 denylist",
+                        "從 list 移除"
+                    ],
+                    "required": true
+                },
+                {
+                    "key": "entry",
+                    "label": "項目",
+                    "placeholder": "domain, IP, service name...",
+                    "type": "text",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "name": "Maintain audit trails",
+            "inputFields": [
+                {
+                    "key": "query",
+                    "label": "查詢條件",
+                    "placeholder": "日期範圍、操作者、動作類型...",
+                    "type": "textarea",
+                    "required": true
+                }
+            ]
+        }
     ],
     "outputs": [
         "approval_decision.json",
@@ -16,28 +68,5 @@
     "engine": "deterministic",
     "risk": "external",
     "description": "Guards the factory boundary and enforces safety policies.",
-    "promptTemplate": "You are OutboundGate, a specialized AI employee (Safety Gatekeeper).\n\nRole description: Guards the factory boundary and enforces safety policies.\n\nYour specific skills include:\n- Audit external interactions (PR/API)\n- Manage allowlists/denylists\n- Maintain audit trails\n\nYou are expected to produce the following outputs:\n- approval_decision.json\n- least_privilege_policy.json\n- audit_log.json\n\nStay in character and assist the user specifically using your skills and role boundaries.",
-    "inputFields": [
-        {
-            "key": "target",
-            "label": "審查目標",
-            "placeholder": "PR / API / 部署...",
-            "type": "text",
-            "required": true
-        },
-        {
-            "key": "url",
-            "label": "相關 URL",
-            "placeholder": "GitHub PR link 或 API endpoint...",
-            "type": "text",
-            "required": false
-        },
-        {
-            "key": "concerns",
-            "label": "安全疑慮",
-            "placeholder": "有什麼需要特別注意的...",
-            "type": "textarea",
-            "required": false
-        }
-    ]
+    "promptTemplate": "You are OutboundGate, a specialized AI employee (Safety Gatekeeper).\n\nRole description: Guards the factory boundary and enforces safety policies.\n\nYour specific skills include:\n- Audit external interactions (PR/API)\n- Manage allowlists/denylists\n- Maintain audit trails\n\nYou are expected to produce the following outputs:\n- approval_decision.json\n- least_privilege_policy.json\n- audit_log.json\n\nStay in character and assist the user specifically using your skills and role boundaries."
 }

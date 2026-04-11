@@ -12,6 +12,11 @@ interface InputField {
     required?: boolean;
 }
 
+interface SkillDef {
+    name: string;
+    inputFields?: InputField[];
+}
+
 interface EmployeeWorkspaceProps {
     employeeId: string;
 }
@@ -19,10 +24,10 @@ interface EmployeeWorkspaceProps {
 export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps) {
     const [employee, setEmployee] = useState<CrewSkill | null>(null);
     const [loading, setLoading] = useState(true);
-    const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
     const [consoleKey, setConsoleKey] = useState(0);
     const [showPromptDetail, setShowPromptDetail] = useState(false);
     const [showConversation, setShowConversation] = useState(false);
+    const [selectedSkillIdx, setSelectedSkillIdx] = useState<number>(-1);
     const [initialPrompt, setInitialPrompt] = useState("");
     const [inputValues, setInputValues] = useState<Record<string, string>>({});
 
@@ -30,14 +35,14 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
         loadCrew().then((data) => {
             const found = data.find((s) => s.id === employeeId);
             setEmployee(found ?? null);
-            if (found) setSelectedSkills((found as any).skills ?? []);
             setLoading(false);
         });
     }, [employeeId]);
 
-    // Reset conversation state when employee changes
+    // Reset when employee changes
     useEffect(() => {
         setShowConversation(false);
+        setSelectedSkillIdx(-1);
         setInputValues({});
         setInitialPrompt("");
     }, [employeeId]);
@@ -51,25 +56,26 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
     }
 
     const emp = employee as any;
-    const inputFields: InputField[] = emp.inputFields || [];
     const promptTemplate: string = emp.promptTemplate || "";
 
-    const toggleSkill = (skill: string) => {
-        setSelectedSkills((prev) =>
-            prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
-        );
-    };
+    // Skills can be either string[] (old format) or SkillDef[] (new format)
+    const skills: SkillDef[] = (emp.skills || []).map((s: any) =>
+        typeof s === "string" ? { name: s } : s
+    );
+
+    const selectedSkill = selectedSkillIdx >= 0 ? skills[selectedSkillIdx] : null;
+    const currentInputFields: InputField[] = selectedSkill?.inputFields || [];
 
     const updateInput = (key: string, value: string) => {
         setInputValues((prev) => ({ ...prev, [key]: value }));
     };
 
     const buildPromptFromFields = (): string => {
-        if (inputFields.length === 0 && initialPrompt.trim()) {
-            return initialPrompt.trim();
-        }
         let parts: string[] = [];
-        for (const field of inputFields) {
+        if (selectedSkill) {
+            parts.push(`【使用技能】${selectedSkill.name}`);
+        }
+        for (const field of currentInputFields) {
             const val = inputValues[field.key]?.trim();
             if (val) {
                 parts.push(`【${field.label}】\n${val}`);
@@ -81,13 +87,21 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
         return parts.join("\n\n");
     };
 
-    const hasRequiredFields = () => {
-        for (const field of inputFields) {
+    const hasRequiredFields = (): boolean => {
+        if (!selectedSkill) return false;
+        for (const field of currentInputFields) {
             if (field.required && !inputValues[field.key]?.trim()) {
                 return false;
             }
         }
         return true;
+    };
+
+    const handleSelectSkill = (idx: number) => {
+        if (idx === selectedSkillIdx) return;
+        setSelectedSkillIdx(idx);
+        setInputValues({});
+        setInitialPrompt("");
     };
 
     const handleStartConversation = () => {
@@ -99,9 +113,47 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
         setConsoleKey((prev) => prev + 1);
     };
 
+    const renderField = (field: InputField) => {
+        const value = inputValues[field.key] || "";
+        const baseClass = "w-full bg-white border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition";
+
+        if (field.type === "textarea") {
+            return (
+                <textarea
+                    placeholder={field.placeholder || ""}
+                    value={value}
+                    onChange={(e) => updateInput(field.key, e.target.value)}
+                    className={cn(baseClass, "h-20 p-2.5 resize-none")}
+                />
+            );
+        }
+        if (field.type === "select" && field.options) {
+            return (
+                <select
+                    value={value}
+                    onChange={(e) => updateInput(field.key, e.target.value)}
+                    className={cn(baseClass, "px-3 py-2")}
+                >
+                    <option value="">-- 請選擇 --</option>
+                    {field.options.map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                </select>
+            );
+        }
+        return (
+            <input
+                type="text"
+                placeholder={field.placeholder || ""}
+                value={value}
+                onChange={(e) => updateInput(field.key, e.target.value)}
+                className={cn(baseClass, "px-3 py-2")}
+            />
+        );
+    };
+
     return (
         <div className="flex flex-col flex-1 min-h-0 gap-2 relative">
-            {/* Top panel: Employee header and skills */}
             <Card className="flex-1 overflow-y-auto min-h-0 p-4">
                 <div className="flex gap-6 items-start">
                     {/* Left: Employee Photo */}
@@ -114,6 +166,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                     </div>
                     {/* Right: Details & Skills */}
                     <div className="flex flex-col gap-4 flex-1">
+                        {/* Header */}
                         <div className="flex justify-between items-start">
                             <h2 className="text-xl font-medium text-stone-800 tracking-tight">
                                 Collaborating with {emp.codename} <span className="text-zinc-500 font-normal ml-2">({emp.title})</span>
@@ -127,42 +180,37 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                                         New Chat
                                     </button>
                                 )}
-                                <button
-                                    onClick={() => { setShowConversation(!showConversation); if (!showConversation) handleStartConversation(); }}
-                                    className="bg-zinc-800 hover:bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-all focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 active:scale-95"
-                                >
-                                    {showConversation ? "隱藏 Console" : "Start Conversation"}
-                                </button>
                             </div>
                         </div>
                         <p className="text-sm text-zinc-600 leading-relaxed max-w-2xl">{emp.description}</p>
-                        
-                        {/* Skills */}
+
+                        {/* Skills — Radio Buttons */}
                         <div className="mt-1">
-                            <div className="font-semibold text-sm mb-3 text-zinc-800">Available Skills & Capabilities:</div>
-                            <div className="flex flex-wrap gap-2">
-                                {emp.skills?.map((skill: string) => {
-                                    const isSelected = selectedSkills.includes(skill);
-                                    return (
-                                        <label
-                                            key={skill}
-                                            className={cn(
-                                                "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm cursor-pointer transition-all",
-                                                isSelected
-                                                    ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
-                                                    : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
-                                            )}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                className="w-4 h-4 text-blue-600 rounded border-zinc-300 focus:ring-blue-500"
-                                                checked={isSelected}
-                                                onChange={() => toggleSkill(skill)}
-                                            />
-                                            <span className="font-medium">{skill}</span>
-                                        </label>
-                                    );
-                                })}
+                            <div className="font-semibold text-sm mb-3 text-zinc-800">Select a Skill:</div>
+                            <div className="space-y-1.5">
+                                {skills.map((skill, idx) => (
+                                    <label
+                                        key={idx}
+                                        className={cn(
+                                            "flex items-center gap-3 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-all",
+                                            selectedSkillIdx === idx
+                                                ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
+                                                : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                                        )}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="skill-select"
+                                            className="w-4 h-4 text-blue-600 border-zinc-300 focus:ring-blue-500"
+                                            checked={selectedSkillIdx === idx}
+                                            onChange={() => handleSelectSkill(idx)}
+                                        />
+                                        <span className="font-medium">{skill.name}</span>
+                                        {skill.inputFields && (
+                                            <span className="text-[10px] text-zinc-400 ml-auto">{skill.inputFields.length} 個輸入欄位</span>
+                                        )}
+                                    </label>
+                                ))}
                             </div>
                         </div>
 
@@ -186,47 +234,22 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                             </div>
                         )}
 
-                        {/* Dynamic Input Fields — Start Conversation Form */}
-                        {inputFields.length > 0 && !showConversation && (
+                        {/* Dynamic Input Fields for selected skill */}
+                        {selectedSkill && currentInputFields.length > 0 && !showConversation && (
                             <div className="mt-4 border border-zinc-200 rounded-xl p-4 bg-zinc-50/50">
-                                <div className="font-semibold text-sm mb-3 text-zinc-800">💬 Start Conversation</div>
+                                <div className="font-semibold text-sm mb-3 text-zinc-800">
+                                    💬 {selectedSkill.name}
+                                </div>
                                 <div className="space-y-3">
-                                    {inputFields.map((field) => (
+                                    {currentInputFields.map((field) => (
                                         <div key={field.key}>
                                             <label className="block text-xs font-medium text-zinc-600 mb-1">
                                                 {field.label}
                                                 {field.required && <span className="text-red-400 ml-1">*</span>}
                                             </label>
-                                            {field.type === "textarea" ? (
-                                                <textarea
-                                                    placeholder={field.placeholder || ""}
-                                                    value={inputValues[field.key] || ""}
-                                                    onChange={(e) => updateInput(field.key, e.target.value)}
-                                                    className="w-full h-20 bg-white border border-zinc-200 rounded-lg p-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition"
-                                                />
-                                            ) : field.type === "select" && field.options ? (
-                                                <select
-                                                    value={inputValues[field.key] || ""}
-                                                    onChange={(e) => updateInput(field.key, e.target.value)}
-                                                    className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition"
-                                                >
-                                                    <option value="">-- 請選擇 --</option>
-                                                    {field.options.map((opt) => (
-                                                        <option key={opt} value={opt}>{opt}</option>
-                                                    ))}
-                                                </select>
-                                            ) : (
-                                                <input
-                                                    type="text"
-                                                    placeholder={field.placeholder || ""}
-                                                    value={inputValues[field.key] || ""}
-                                                    onChange={(e) => updateInput(field.key, e.target.value)}
-                                                    className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition"
-                                                />
-                                            )}
+                                            {renderField(field)}
                                         </div>
                                     ))}
-                                    {/* Free-form supplement */}
                                     <div>
                                         <label className="block text-xs font-medium text-zinc-600 mb-1">📝 補充說明（選填）</label>
                                         <textarea
@@ -250,7 +273,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                 </div>
             </Card>
 
-            {/* OpenCode Console — only shown after starting conversation */}
+            {/* OpenCode Console */}
             {showConversation && (
                 <Card className="shrink-0 h-[450px] flex flex-col overflow-hidden p-0 border-0 bg-transparent shadow-none">
                     <OpenCodeConsole
