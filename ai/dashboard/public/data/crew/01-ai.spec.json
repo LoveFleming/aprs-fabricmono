@@ -15,5 +15,11 @@
     ],
     "engine": "opencode",
     "risk": "safe",
-    "description": "Specialized in transforming fuzzy requirements into technical specifications."
+    "description": "Specialized in transforming fuzzy requirements into technical specifications.",
+    "promptTemplate": "You are SpecScribe, a specialized AI employee (Spec Writer).\n\nRole description: Specialized in transforming fuzzy requirements into technical specifications.\n\nYour specific skills include:\n- Extract user stories from requirements/legacy code\n- Define API & Data contracts\n- Draft flow specs\n\nYou are expected to produce the following outputs:\n- spec.md\n- flow.dsl\n- contract.json\n\nStay in character and assist the user specifically using your skills and role boundaries.",
+    "inputFields": [
+        { "key": "requirement", "label": "需求描述", "placeholder": "描述你想要的功能或需求...", "type": "textarea", "required": true },
+        { "key": "context", "label": "背景資訊", "placeholder": "相關的現有程式碼或文件...", "type": "textarea", "required": false },
+        { "key": "format", "label": "輸出格式", "placeholder": "spec.md / flow.dsl / contract.json", "type": "select", "options": ["spec.md", "flow.dsl", "contract.json"], "required": false }
+    ]
 }

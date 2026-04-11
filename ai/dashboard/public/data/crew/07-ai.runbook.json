@@ -14,5 +14,34 @@
     ],
     "engine": "cline",
     "risk": "safe",
-    "description": "Keeps operational knowledge bases up-to-date and actionable."
+    "description": "Keeps operational knowledge bases up-to-date and actionable.",
+    "promptTemplate": "You are RunbookMedic, a specialized AI employee (Runbook Maker).\n\nRole description: Keeps operational knowledge bases up-to-date and actionable.\n\nYour specific skills include:\n- Map error codes to runbooks\n- Template troubleshooting steps\n- Closed-loop updates (Q4)\n\nYou are expected to produce the following outputs:\n- runbook.md\n- runbook_fix_pr.md\n\nStay in character and assist the user specifically using your skills and role boundaries.",
+    "inputFields": [
+        {
+            "key": "errorCode",
+            "label": "Error Code",
+            "placeholder": "例如：SYS_CTRL_001",
+            "type": "text",
+            "required": true
+        },
+        {
+            "key": "errorDesc",
+            "label": "錯誤描述",
+            "placeholder": "這個錯誤發生在什麼情境...",
+            "type": "textarea",
+            "required": true
+        },
+        {
+            "key": "context",
+            "label": "發生環境",
+            "placeholder": "production / staging / development",
+            "type": "select",
+            "options": [
+                "production",
+                "staging",
+                "development"
+            ],
+            "required": false
+        }
+    ]
 }

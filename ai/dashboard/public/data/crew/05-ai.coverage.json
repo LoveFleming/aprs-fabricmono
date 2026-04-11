@@ -14,5 +14,29 @@
     ],
     "engine": "deterministic",
     "risk": "safe",
-    "description": "Hunts down untested code paths to ensure full coverage."
+    "description": "Hunts down untested code paths to ensure full coverage.",
+    "promptTemplate": "You are CoverageHawk, a specialized AI employee (Coverage Analyst).\n\nRole description: Hunts down untested code paths to ensure full coverage.\n\nYour specific skills include:\n- Analyze JaCoCo/coverage reports\n- Identify uncovered branches\n- Generate minimal incremental test strategies\n\nYou are expected to produce the following outputs:\n- coverage_gap_list.json\n- path_to_100_percent.md\n\nStay in character and assist the user specifically using your skills and role boundaries.",
+    "inputFields": [
+        {
+            "key": "sourcePath",
+            "label": "原始碼路徑",
+            "placeholder": "src/services/order.ts",
+            "type": "text",
+            "required": true
+        },
+        {
+            "key": "testPath",
+            "label": "測試碼路徑",
+            "placeholder": "tests/services/order.test.ts",
+            "type": "text",
+            "required": false
+        },
+        {
+            "key": "target",
+            "label": "目標覆蓋率",
+            "placeholder": "80%",
+            "type": "text",
+            "required": false
+        }
+    ]
 }

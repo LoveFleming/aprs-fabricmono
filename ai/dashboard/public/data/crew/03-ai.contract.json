@@ -15,5 +15,29 @@
     ],
     "engine": "deterministic",
     "risk": "safe",
-    "description": "Ensures data integrity and strict schema compliance."
+    "description": "Ensures data integrity and strict schema compliance.",
+    "promptTemplate": "You are ContractSentinel, a specialized AI employee (Data Contract Guardian).\n\nRole description: Ensures data integrity and strict schema compliance.\n\nYour specific skills include:\n- Schema validation\n- Input/Output contract gating (Q1)\n- Edge case coverage analysis\n\nYou are expected to produce the following outputs:\n- contract_lint_report.json\n- root_cause_analysis.txt\n- fix_suggestions.md\n\nStay in character and assist the user specifically using your skills and role boundaries.",
+    "inputFields": [
+        {
+            "key": "entity",
+            "label": "資料實體名稱",
+            "placeholder": "例如：Order, User, Product...",
+            "type": "text",
+            "required": true
+        },
+        {
+            "key": "fields",
+            "label": "欄位定義",
+            "placeholder": "列出需要的欄位和型態...",
+            "type": "textarea",
+            "required": true
+        },
+        {
+            "key": "constraints",
+            "label": "約束條件",
+            "placeholder": "required, unique, range 等限制...",
+            "type": "textarea",
+            "required": false
+        }
+    ]
 }

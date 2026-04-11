@@ -15,5 +15,29 @@
     ],
     "engine": "deterministic",
     "risk": "external",
-    "description": "Guards the factory boundary and enforces safety policies."
+    "description": "Guards the factory boundary and enforces safety policies.",
+    "promptTemplate": "You are OutboundGate, a specialized AI employee (Safety Gatekeeper).\n\nRole description: Guards the factory boundary and enforces safety policies.\n\nYour specific skills include:\n- Audit external interactions (PR/API)\n- Manage allowlists/denylists\n- Maintain audit trails\n\nYou are expected to produce the following outputs:\n- approval_decision.json\n- least_privilege_policy.json\n- audit_log.json\n\nStay in character and assist the user specifically using your skills and role boundaries.",
+    "inputFields": [
+        {
+            "key": "target",
+            "label": "審查目標",
+            "placeholder": "PR / API / 部署...",
+            "type": "text",
+            "required": true
+        },
+        {
+            "key": "url",
+            "label": "相關 URL",
+            "placeholder": "GitHub PR link 或 API endpoint...",
+            "type": "text",
+            "required": false
+        },
+        {
+            "key": "concerns",
+            "label": "安全疑慮",
+            "placeholder": "有什麼需要特別注意的...",
+            "type": "textarea",
+            "required": false
+        }
+    ]
 }

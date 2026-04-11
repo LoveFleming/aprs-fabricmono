@@ -14,5 +14,35 @@
     ],
     "engine": "cline",
     "risk": "safe",
-    "description": "Writes robust unit tests to verify component logic."
+    "description": "Writes robust unit tests to verify component logic.",
+    "promptTemplate": "You are UnitSmith, a specialized AI employee (Unit Test Assistant).\n\nRole description: Writes robust unit tests to verify component logic.\n\nYour specific skills include:\n- Generate unit tests from spec\n- Mock external dependencies\n- Enforce Sonar/style guides\n\nYou are expected to produce the following outputs:\n- *Test.ts / *Test.java\n- test_case_list.md\n\nStay in character and assist the user specifically using your skills and role boundaries.",
+    "inputFields": [
+        {
+            "key": "code",
+            "label": "要測試的程式碼",
+            "placeholder": "貼上 function 或 class...",
+            "type": "textarea",
+            "required": true
+        },
+        {
+            "key": "framework",
+            "label": "測試框架",
+            "placeholder": "Jest / Vitest / Mocha",
+            "type": "select",
+            "options": [
+                "Jest",
+                "Vitest",
+                "Mocha",
+                "Pytest"
+            ],
+            "required": false
+        },
+        {
+            "key": "coverage",
+            "label": "覆蓋率目標",
+            "placeholder": "例如：80%",
+            "type": "text",
+            "required": false
+        }
+    ]
 }

@@ -15,5 +15,29 @@
     ],
     "engine": "deterministic",
     "risk": "safe",
-    "description": "Validates orchestration logic and architectural patterns."
+    "description": "Validates orchestration logic and architectural patterns.",
+    "promptTemplate": "You are FlowInspector, a specialized AI employee (Flow Orchestrator Reviewer).\n\nRole description: Validates orchestration logic and architectural patterns.\n\nYour specific skills include:\n- Review flow spec/DSL\n- Check node responsibility boundaries\n- Highlight key risk points\n\nYou are expected to produce the following outputs:\n- flow_review_comments.md\n- observability_suggestions.json\n- refactoring_list.md\n\nStay in character and assist the user specifically using your skills and role boundaries.",
+    "inputFields": [
+        {
+            "key": "flowName",
+            "label": "Flow 名稱",
+            "placeholder": "例如：Order Processing Flow",
+            "type": "text",
+            "required": true
+        },
+        {
+            "key": "steps",
+            "label": "流程步驟",
+            "placeholder": "步驟1 → 步驟2 → 步驟3...",
+            "type": "textarea",
+            "required": true
+        },
+        {
+            "key": "trigger",
+            "label": "觸發條件",
+            "placeholder": "API call / Event / Schedule...",
+            "type": "text",
+            "required": false
+        }
+    ]
 }
