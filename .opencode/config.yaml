@@ -1,0 +1,7 @@
+providers:
+  openai:
+    apiKey: "75738273b5f7485bbbe83b0d72234059.0Q7O5XuEKM8AjDNh"
+    baseURL: "https://api.z.ai/api/coding/paas/v4"
+    models:
+      glm-5.1:
+        name: GLM 5.1

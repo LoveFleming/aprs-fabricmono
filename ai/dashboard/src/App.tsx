@@ -51,7 +51,7 @@ function groupByCategory(apps: PortalApp[]) {
 export default function App() {
   const [search, setSearch] = useState("");
   const [activeAppId, setActiveAppId] = useState<string>("home");
-  const [openTabs, setOpenTabs] = useState<string[]>(["home"]);
+  const [openTabs, setOpenTabs] = useState<string[]>(["home", "orchestrator-overview"]);
 
   const openApp = (id: string) => {
     setOpenTabs((prev) => {
@@ -286,6 +286,7 @@ export default function App() {
       "Factory Standards": (appGroups.get("Standards") ?? []).map((a) => a.id),
       "Ops Console": [
           "home",
+          "orchestrator-overview",
           ...(appGroups.get("Monitoring") ?? []).map((a: any) => a.id),
           ...(appGroups.get("Investigation") ?? []).map((a: any) => a.id),
       ],
@@ -474,7 +475,7 @@ export default function App() {
                   )}
                 >
                   <span className="truncate whitespace-nowrap">{labelFor(tabId)}</span>
-                  {tabId !== "orchestrator-overview" && (
+                  {tabId !== "orchestrator-overview" && tabId !== "home" && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
