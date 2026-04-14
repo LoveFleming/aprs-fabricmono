@@ -36,16 +36,19 @@ export default function OrchestratorWorkspace({
     ];
 
     const scrollTo = (id: string) => {
-        document.getElementById(`section-\${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const el = document.getElementById(`section-${id}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     };
 
     return (
-        <div className="flex h-full gap-6 max-w-[1400px] mx-auto animate-in fade-in duration-300">
+        <div className="flex h-full gap-6 max-w-[1400px] mx-auto animate-in fade-in duration-300 overflow-hidden">
             {/* Main Content Scrollable Area */}
-            <div className="flex-1 overflow-y-auto pr-6 custom-scrollbar pb-24 h-full relative" style={{ height: "calc(100vh - 120px)" }}>
+            <div className="flex-1 overflow-y-auto pr-6 pb-24" id="orch-scroll-container">
                 <div className="space-y-8">
                     {sections.map(sec => sec.component ? (
-                        <div key={sec.id} id={`section-\${sec.id}`} className="scroll-mt-6">
+                        <div key={sec.id} id={`section-${sec.id}`} className="scroll-mt-4">
                             {sec.component}
                         </div>
                     ) : null)}
@@ -53,8 +56,8 @@ export default function OrchestratorWorkspace({
             </div>
 
             {/* Sticky Navigation Panel */}
-            <div className="w-48 shrink-0 hidden lg:block">
-                <div className="sticky top-0 right-0 space-y-1 bg-zinc-100 rounded-xl p-3 border border-zinc-200" style={{ marginTop: '0' }}>
+            <div className="w-48 shrink-0 hidden lg:block overflow-y-auto py-2">
+                <div className="space-y-1 bg-zinc-100 rounded-xl p-3 border border-zinc-200">
                     <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3 px-2 flex items-center gap-2 border-b border-zinc-200 pb-2">
                         <span>Navigation</span>
                     </div>
