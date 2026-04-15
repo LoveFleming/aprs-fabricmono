@@ -98,7 +98,7 @@ export default function OrchestratorWorkspace({
             </div>
 
             {/* Main Content Scrollable Area */}
-            <div className="flex-1 overflow-y-auto pr-4 pb-12" id="orch-scroll-container">
+            <div className="flex-1 overflow-y-auto pr-1 pb-12" id="orch-scroll-container">
                 <div className="space-y-6 max-w-[1000px]">
                     {sections.map(sec => sec.component ? (
                         <div key={sec.id} id={`section-${sec.id}`} className="scroll-mt-4">
