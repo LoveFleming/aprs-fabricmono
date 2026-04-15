@@ -39,9 +39,13 @@ export default function OrchestratorWorkspace({
     }, [orch]);
 
     const scrollTo = useCallback((id: string) => {
+        const container = document.getElementById('orch-scroll-container');
         const el = document.getElementById(`section-${id}`);
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (el && container) {
+            const containerRect = container.getBoundingClientRect();
+            const elRect = el.getBoundingClientRect();
+            const offset = elRect.top - containerRect.top + container.scrollTop - 16;
+            container.scrollTo({ top: offset, behavior: 'smooth' });
             setActiveSection(id);
         }
     }, []);
@@ -70,7 +74,7 @@ export default function OrchestratorWorkspace({
     if (!orch) return <div className="p-8 text-center text-zinc-500">Orchestrator not found.</div>;
 
     return (
-        <div className="flex h-full gap-4 animate-in fade-in duration-300 overflow-hidden">
+        <div className="flex gap-4 animate-in fade-in duration-300 h-full overflow-hidden">
             {/* Left Navigation */}
             <div className="w-36 shrink-0 overflow-y-auto py-1">
                 <div className="space-y-0.5 bg-zinc-100 rounded-lg p-2 border border-zinc-200">
