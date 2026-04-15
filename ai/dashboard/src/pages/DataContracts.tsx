@@ -37,7 +37,7 @@ export default function DataContracts({ openApp }: { openApp?: (id: string) => v
     }, {} as Record<string, SpecEntry[]>);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 h-full overflow-y-auto">
             {Object.entries(grouped).map(([type, entries]) => (
                 <Card key={type} title={type.replace(/-contracts/, " Contracts").toUpperCase()}>
                     <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">

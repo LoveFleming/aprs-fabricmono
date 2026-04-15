@@ -9,7 +9,7 @@ export default function OrchestratorViewer() {
     if (!selectedFlow) return <div className="text-sm text-zinc-500">No flow selected.</div>;
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 h-full overflow-y-auto">
             <Card
                 title="Flow Spec"
                 right={
