@@ -16,18 +16,10 @@ export interface CrewSkill {
 }
 
 const CREW_FILES = [
-  '01-ai.spec.json',
-  '02-ai.api.json',
-  '03-ai.contract.json',
-  '04-ai.unit.json',
-  '05-ai.coverage.json',
-  '06-ai.e2e.json',
-  '07-ai.runbook.json',
-  '08-ai.flow.json',
-  '09-ai.rca.json',
-  '10-ai.gatekeeper.json',
-  '11-ai.little-fleming.json',
-  '12-ai.factory-guide.json',
+  '01-ai.spec-architect.json',
+  '02-ai.code-forge.json',
+  '03-ai.quality-shield.json',
+  '04-ai.factory-guide.json',
 ];
 
 let _cache: CrewSkill[] | null = null;
