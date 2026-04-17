@@ -27,6 +27,7 @@ const CREW_FILES = [
   '09-ai.rca.json',
   '10-ai.gatekeeper.json',
   '11-ai.little-fleming.json',
+  '12-ai.factory-guide.json',
 ];
 
 let _cache: CrewSkill[] | null = null;
