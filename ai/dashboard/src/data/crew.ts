@@ -20,6 +20,8 @@ const CREW_FILES = [
   '02-ai.code-forge.json',
   '03-ai.quality-shield.json',
   '04-ai.factory-guide.json',
+  '05-ai.skill-creator.json',
+  '06-ai.medic.json',
 ];
 
 let _cache: CrewSkill[] | null = null;
