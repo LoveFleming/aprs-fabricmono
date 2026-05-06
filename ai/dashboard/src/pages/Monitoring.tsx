@@ -9,7 +9,7 @@ interface MonitoringProps {
 
 export default function Monitoring({ runSkill }: MonitoringProps) {
     return (
-        <div className="h-full overflow-y-auto space-y-4">
+        <div className="h-full overflow-y-auto space-y-4 px-6">
             <Card title="Monitoring Report Generator">
                 <div className="h-full overflow-y-auto space-y-3">
                     <div className="text-sm text-zinc-700">Generate reports from sandbox snapshots (not direct production write-access).</div>

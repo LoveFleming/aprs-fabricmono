@@ -25,7 +25,7 @@ export default function Rca({ selectedIncidentId, setSelectedIncidentId, runSkil
     );
 
     return (
-        <div className="h-full overflow-y-auto space-y-4">
+        <div className="h-full overflow-y-auto space-y-4 px-6">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                 <Card
                     title="Incident Bundles"

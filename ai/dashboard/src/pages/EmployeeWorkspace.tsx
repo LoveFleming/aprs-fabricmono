@@ -40,7 +40,7 @@ function BriefingForm({ inputs, onSubmit, onCancel }: {
     return (
         <div className="flex flex-col h-full">
             {/* Scrollable form area */}
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="flex-1 overflow-y-auto px-6 py-4">
                 <div className="flex flex-col gap-6 max-w-4xl mx-auto">
                     <div className="text-center space-y-1">
                         <h3 className="text-lg font-bold text-zinc-800">📋 工作需求表</h3>

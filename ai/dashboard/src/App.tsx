@@ -16,19 +16,20 @@ import { createOpencodeClient } from "@opencode-ai/sdk/client";
  */
 
 import OperationsCenter from "./pages/OperationsCenter";
-import OrchestratorViewer from "./pages/OrchestratorViewer";
+
 import OrchestratorOverview from "./pages/OrchestratorOverview";
 import OrchestratorWorkspace from "./pages/OrchestratorWorkspace";
 import { ORCHESTRATORS } from "./data/mockOrchestrators";
-import Runbooks from "./pages/Runbooks";
-import DataContracts from "./pages/DataContracts";
-import Storybook from "./pages/Storybook";
+
+
+
 import AICrew from "./pages/AICrew";
 import Gates from "./pages/Gates";
 import Monitoring from "./pages/Monitoring";
 import Rca from "./pages/Rca";
 import EmployeeWorkspace from "./pages/EmployeeWorkspace";
-import ApiContractViewer from "./pages/ApiContractViewer";
+import FactoryStandards from "./pages/FactoryStandards";
+
 import { Card, RiskBadge, CodeBlock, SidebarSection, NavItem } from "./components/ui/shared";
 import { AppCategory, PortalApp, SkillEngine, Skill, RunStatus, Run, FlowSpec, Runbook, IncidentBundle, DataContract, Risk } from "./types";
 import { nowIso, fmtTime, cn, shortId, safeJsonParse, randId, badgeClasses, statusClasses } from "./utils";
@@ -233,6 +234,7 @@ export default function App() {
         const o = ORCHESTRATORS.find(o => o.id === oId);
         return o ? o.name : "Orchestrator Workspace";
     }
+    if (activeAppId === "factory.standards") return "Factory Standards";
     if (activeAppId === "home") return "Dashboard";
     return APPS.find((a) => a.id === activeAppId)?.title ?? "Dashboard";
   }, [activeAppId]);
@@ -252,6 +254,7 @@ export default function App() {
         const o = ORCHESTRATORS.find(o => o.id === oId);
         return o ? o.name : id;
     }
+    if (id === "factory.standards") return "Standards";
     if (id === "home") return "Dashboard";
     return APPS.find((a) => a.id === id)?.title ?? id;
   };
@@ -287,8 +290,9 @@ export default function App() {
           ...(appGroups.get("Monitoring") ?? []).map((a) => a.id),
           ...(appGroups.get("Investigation") ?? []).map((a) => a.id),
       ], // Note mapping the old ones correctly if 'home' is a string
+      "Factory Standards": ["factory.standards"],
       "AI Collaboration": (appGroups.get("Execution") ?? []).map((a) => a.id),
-      "Legacy Assets": (appGroups.get("Assets") ?? []).map((a) => a.id),
+
     } as Record<string, string[]>;
   }, [appGroups]);
 
@@ -378,11 +382,9 @@ export default function App() {
       const [, domain, orchId] = activeAppId.split(".");
       return <OrchestratorWorkspace domain={domain} orchId={orchId} />;
     }
+    if (activeAppId === "factory.standards") return <FactoryStandards />;
     if (activeAppId === "home") return <OperationsCenter runs={runs} setActiveAppId={openApp} setSelectedRunId={setSelectedRunId} setSelectedIncidentId={setSelectedIncidentId} runSkill={runSkill} todayIncidentCounts={todayIncidentCounts} runCounts={runCounts} currentRuns={currentRuns} todayIncidents={todayIncidents} suggestions={suggestions} />;
-    if (activeAppId === "assets.orchestrator") return <OrchestratorViewer />;
-    if (activeAppId === "assets.runbooks") return <Runbooks />;
-    if (activeAppId === "assets.contracts") return <DataContracts openApp={openApp} />;
-    if (activeAppId === "assets.storybook") return <Storybook />;
+
     if (activeAppId === "exec.skills") return <AICrew runSkill={runSkill} openApp={openApp} />;
     if (activeAppId === "exec.gates") return <Gates runSkill={runSkill} />;
     if (activeAppId === "mon.report") return <Monitoring runSkill={runSkill} />;
@@ -390,10 +392,6 @@ export default function App() {
     if (activeAppId.startsWith("employee.")) {
       const employeeId = activeAppId.slice(9);
       return <EmployeeWorkspace employeeId={employeeId} />;
-    }
-    if (activeAppId.startsWith("api.")) {
-      const apiName = activeAppId.slice(4);
-      return <ApiContractViewer apiName={apiName} />;
     }
     return <AICrew runSkill={runSkill} openApp={openApp} />;
   };
@@ -419,7 +417,7 @@ export default function App() {
         <aside className="w-64 bg-white border-r border-zinc-200 flex-shrink-0 overflow-y-auto flex flex-col py-2">
           <div className="flex flex-col">
             {(Object.keys(nav) as string[]).map((cat) => {
-              const domTitle = cat === "Product Domains" ? cat : ["Ops Console","Legacy Assets","AI Collaboration"].includes(cat) ? cat : `Domain: ${cat.toUpperCase()}`;
+              const domTitle = cat === "Product Domains" ? cat : ["Ops Console","AI Collaboration","Factory Standards"].includes(cat) ? cat : `Domain: ${cat.toUpperCase()}`;
               return (
               <SidebarSection key={cat} title={domTitle}>
                 <div className="space-y-1">
@@ -453,7 +451,7 @@ export default function App() {
         <main className="flex-1 overflow-hidden bg-zinc-50 flex flex-col">
 
           {/* Tabs */}
-          <div className="flex w-full items-end gap-1 overflow-x-auto bg-zinc-100 px-4 pt-2 border-b border-zinc-200">
+          <div className="flex w-full items-end gap-1 overflow-x-auto bg-zinc-100 px-4 pt-2 border-b border-zinc-200" style={{ scrollbarWidth: 'none' }}>
             {openTabs.map((tabId) => {
               const isActive = activeAppId === tabId;
               return (
@@ -489,7 +487,7 @@ export default function App() {
             })}
           </div>
 
-          <div className="flex-1 w-full px-6 py-2 flex flex-col min-h-0 overflow-hidden bg-zinc-50">
+          <div className="flex-1 w-full py-2 flex flex-col min-h-0 overflow-hidden bg-zinc-50">
             {renderContent()}
           </div>
         </main>
