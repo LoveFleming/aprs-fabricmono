@@ -23,6 +23,7 @@ import { ORCHESTRATORS } from "./data/mockOrchestrators";
 
 
 import AICrew from "./pages/AICrew";
+import FactoryDocument from "./pages/FactoryDocument";
 import Gates from "./pages/Gates";
 import Monitoring from "./pages/Monitoring";
 import Rca from "./pages/Rca";
@@ -173,10 +174,11 @@ export default function App() {
         const o = ORCHESTRATORS.find(o => o.id === oId);
         return o ? o.name : "Orchestrator Workspace";
     }
+    if (activeAppId === "factory.tour") return "Quick Tour";
     if (activeAppId === "factory.standards") return "Standards";
     if (activeAppId === "factory.manifesto") return "Constitution";
     if (activeAppId === "factory.crew") return "AI Crew";
-    if (activeAppId === "home") return "Quick Tour";
+    if (activeAppId === "home") return "Dashboard";
     return APPS.find((a) => a.id === activeAppId)?.title ?? "Dashboard";
   }, [activeAppId]);
 
@@ -195,10 +197,11 @@ export default function App() {
         const o = ORCHESTRATORS.find(o => o.id === oId);
         return o ? o.name : id;
     }
+    if (id === "factory.tour") return "Quick Tour";
     if (id === "factory.standards") return "Standards";
     if (id === "factory.manifesto") return "Constitution";
     if (id === "factory.crew") return "AI Crew";
-    if (id === "home") return "Quick Tour";
+    if (id === "home") return "Dashboard";
     return APPS.find((a) => a.id === id)?.title ?? id;
   };
 
@@ -216,6 +219,7 @@ export default function App() {
     }
     if (id === "home") return "safe";
     if (id === "home") return "safe";
+    if (id === "factory.tour") return "safe";
     if (id === "factory.standards") return "safe";
     if (id === "factory.manifesto") return "safe";
     if (id === "factory.crew") return "safe";
@@ -224,7 +228,7 @@ export default function App() {
 
   const nav = useMemo(() => {
     return {
-      "Factory": ["home", "factory.manifesto", "factory.standards", "factory.crew"],
+      "Factory": ["factory.tour", "factory.manifesto", "factory.standards", "factory.crew"],
     } as Record<string, string[]>;
   }, []);
 
@@ -321,12 +325,13 @@ export default function App() {
         todayIncidents={todayIncidents}
         suggestions={suggestions}
       />;
+    if (activeAppId === "factory.tour") return <FactoryDocument file="quick-tour" headerIcon="🏭" headerTitle="AI Software Factory" headerSub="快速導覽 — 5 分鐘理解工廠如何運作" />;
     if (activeAppId.startsWith("orch.")) {
       const [, domain, orchId] = activeAppId.split(".");
       return <OrchestratorWorkspace domain={domain} orchId={orchId} />;
     }
-    if (activeAppId === "factory.manifesto") return <FactoryStandards initialTab="manifesto" />;
-    if (activeAppId === "factory.standards") return <FactoryStandards />;
+    if (activeAppId === "factory.manifesto") return <FactoryDocument file="constitution" headerIcon="📜" headerTitle="Constitution" headerSub="工廠意法 — 核心原則與價值" />;
+    if (activeAppId === "factory.standards") return <FactoryDocument file="standards" headerIcon="📐" headerTitle="Standards" headerSub="工程標準與規範" />;
     if (activeAppId === "home") return <OperationsCenter runs={runs} setActiveAppId={openApp} setSelectedRunId={setSelectedRunId} setSelectedIncidentId={setSelectedIncidentId} runSkill={runSkill} todayIncidentCounts={todayIncidentCounts} runCounts={runCounts} currentRuns={currentRuns} todayIncidents={todayIncidents} suggestions={suggestions} />;
 
     if (activeAppId === "factory.crew") return <AICrew runSkill={runSkill} openApp={openApp} />;

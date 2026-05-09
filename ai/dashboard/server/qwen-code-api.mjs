@@ -10,6 +10,8 @@
  */
 
 import { createServer } from "http";
+import { readdir, readFile } from "fs/promises";
+import { join, resolve } from "path";
 import { query, isSDKAssistantMessage, isSDKResultMessage, isSDKPartialAssistantMessage } from "@qwen-code/sdk";
 
 const PORT = parseInt(process.env.QWEN_CODE_PORT || "4097", 10);
@@ -80,6 +82,44 @@ const server = createServer(async (req, res) => {
     if (ac) { ac.abort(); activeQueries.delete(queryId); }
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  // GET /api/factory-content/:name — single file
+  const singleFileMatch = req.method === "GET" && req.url?.match(/^\/api\/factory-content\/([\w-]+)$/);
+  if (singleFileMatch) {
+    const name = singleFileMatch[1];
+    const factoryDir = resolve(process.cwd(), "../factory");
+    const filePath = join(factoryDir, `${name}.md`);
+    try {
+      const content = await readFile(filePath, "utf-8");
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ filename: name, content }));
+    } catch {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "File not found" }));
+    }
+    return;
+  }
+
+  // GET /api/factory-content — list all markdown files from ai/factory/
+  if (req.method === "GET" && req.url === "/api/factory-content") {
+    const factoryDir = resolve(process.cwd(), "../factory");
+    try {
+      const files = await readdir(factoryDir);
+      const mdFiles = files.filter(f => f.endsWith(".md")).sort();
+      const result = await Promise.all(
+        mdFiles.map(async (name) => {
+          const content = await readFile(join(factoryDir, name), "utf-8");
+          return { filename: name.replace(/\.md$/, ""), content };
+        })
+      );
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(result));
+    } catch (err) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify([]));
+    }
     return;
   }
 
