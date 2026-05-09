@@ -10,7 +10,7 @@ export type PortalApp = {
     risk: Risk;
 };
 
-export type SkillEngine = "deterministic" | "cline" | "opencode";
+export type SkillEngine = "deterministic" | "cline";
 
 export interface RequiredInput {
     id: string;

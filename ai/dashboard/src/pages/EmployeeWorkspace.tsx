@@ -8,6 +8,28 @@ interface EmployeeWorkspaceProps {
     employeeId: string;
 }
 
+function buildInitialMessage(inputs: RequiredInput[], data: Record<string, string>, skillIds: string[]): string {
+    const lines: string[] = [];
+    const groups = new Map<string, { label: string; value: string }[]>();
+    for (const input of inputs) {
+        const val = data[input.id]?.trim();
+        if (!val) continue;
+        const group = input.group || "Other";
+        if (!groups.has(group)) groups.set(group, []);
+        groups.get(group)!.push({ label: input.label, value: val });
+    }
+    for (const [group, items] of groups) {
+        lines.push(`## ${group}`);
+        for (const item of items) {
+            lines.push(`**${item.label}:** ${item.value}`);
+        }
+        lines.push("");
+    }
+    lines.push("---");
+    lines.push("Please start working based on the above information.");
+    return lines.join("\n");
+}
+
 function BriefingForm({ inputs, onSubmit, onCancel }: {
     inputs: RequiredInput[];
     onSubmit: (data: Record<string, string>) => void;
@@ -120,7 +142,7 @@ function BriefingForm({ inputs, onSubmit, onCancel }: {
                                 : "bg-zinc-100 text-zinc-400 cursor-not-allowed"
                         )}
                     >
-                        🚀 開始開發 ({inputs.filter(i => formData[i.id]?.trim()).length}/{inputs.length} 已填)
+                        🚀 開始 ({inputs.filter(i => formData[i.id]?.trim()).length}/{inputs.length} 已填)
                     </button>
                 </div>
             </div>
@@ -141,14 +163,14 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
     useEffect(() => {
         if (employee) {
             const initial: Record<string, boolean> = {};
-            employee.skills.forEach(s => { initial[s.id] = s.enabled; });
+            // No skill selected by default
             setEnabledSkills(initial);
             setConsoleKey(0);
             setChatStarted(false);
             setShowPromptModal(false);
             setShowBriefing(false);
             setFormData({});
-            setSystemPrompt(buildSystemPrompt(employee, employee.skills.filter(s => s.enabled).map(s => s.id)));
+            setSystemPrompt(buildSystemPrompt(employee, []));
         }
     }, [employee]);
 
@@ -172,7 +194,12 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
 
     const handleSkillToggle = useCallback((skillId: string) => {
         setEnabledSkills(prev => {
-            const next = { ...prev, [skillId]: !prev[skillId] };
+            // Radio behavior: only one skill at a time
+            const next: Record<string, boolean> = {};
+            // If clicking the already-selected skill, deselect it
+            if (!(prev[skillId])) {
+                next[skillId] = true;
+            }
             if (employee) {
                 const ids = Object.entries(next).filter(([_, v]) => v).map(([k]) => k);
                 setSystemPrompt(buildSystemPrompt(employee, ids));
@@ -269,8 +296,8 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                                     )}
                                 >
                                     {allRequiredInputs.length > 0 && !chatStarted
-                                        ? `📋 填寫需求 (${selectedSkillIds.length} 技能)`
-                                        : `💬 開始對話 (${selectedSkillIds.length} 技能)`
+                                        ? `📋 填寫需求`
+                                        : `💬 Start`
                                     }
                                 </button>
                             </div>
@@ -279,11 +306,11 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                         {/* Skill selection */}
                         <div>
                             <div className="font-semibold text-xs mb-2 text-zinc-600 uppercase tracking-wider">
-                                勾選要載入的技能
+                                選擇要載入的技能
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 {employee.skills.map((skill: CrewSkill) => {
-                                    const isSelected = enabledSkills[skill.id] ?? skill.enabled;
+                                    const isSelected = enabledSkills[skill.id] === true;
                                     const hasInputs = skill.requiredInputs && skill.requiredInputs.length > 0;
                                     return (
                                         <label
@@ -296,8 +323,9 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                                             )}
                                         >
                                             <input
-                                                type="checkbox"
-                                                className="w-3.5 h-3.5 rounded border-zinc-300 accent-orange-500"
+                                                type="radio"
+                                                name="skill-select"
+                                                className="w-3.5 h-3.5 rounded-full border-zinc-300 accent-orange-500"
                                                 checked={isSelected}
                                                 onChange={() => handleSkillToggle(skill.id)}
                                             />
@@ -342,6 +370,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                         key={`console-${consoleKey}`}
                         selectedEmployee={employee}
                         systemPrompt={systemPrompt}
+                        initialMessage={chatStarted && Object.keys(formData).length > 0 ? buildInitialMessage(allRequiredInputs, formData, selectedSkillIds) : undefined}
                         className="flex-1 overflow-hidden m-0"
                         disableCard
                     />
@@ -355,7 +384,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                                 點「📋 填寫需求」準備規格資料，再開始開發
                             </div>
                         ) : (
-                            <div className="text-sm text-zinc-400">勾選技能後點「開始對話」來啟動 Console</div>
+                            <div className="text-sm text-zinc-400">選擇一個技能後點 Start 來啟動 Console</div>
                         )}
                         <details className="mt-4 text-left">
                             <summary className="text-xs text-zinc-400 cursor-pointer hover:text-zinc-600 text-center">
@@ -377,7 +406,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                             <div>
                                 <h3 className="text-base font-bold text-zinc-800">📝 System Prompt 預覽</h3>
                                 <p className="text-xs text-zinc-400 mt-0.5">
-                                    {employee.codename} · {selectedSkillIds.length} 個技能 · {systemPrompt.length} 字元
+                                    {employee.codename} · {systemPrompt.length} 字元
                                 </p>
                             </div>
                             <button

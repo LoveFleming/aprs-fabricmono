@@ -1,236 +1,265 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, cn } from "../components/ui/shared";
-import { createOpencodeClient } from "@opencode-ai/sdk/client";
 import { Skill } from "../types";
 
 interface OpenCodeConsoleProps {
     selectedEmployee?: Skill | null;
     systemPrompt?: string;
+    initialMessage?: string;
     className?: string;
     disableCard?: boolean;
 }
 
-export default function OpenCodeConsole({ selectedEmployee, systemPrompt, className, disableCard }: OpenCodeConsoleProps) {
-    const [openCodeSessionId, setOpenCodeSessionId] = useState<string | null>(null);
-    const [openCodeMessages, setOpenCodeMessages] = useState<Array<{ role: "user" | "assistant"; text: string; id?: string }>>([]);
-    const [openCodeInput, setOpenCodeInput] = useState("");
-    const [isOpenCodeLoading, setIsOpenCodeLoading] = useState(false);
+interface ConsoleMessage {
+    role: "user" | "assistant" | "system";
+    text: string;
+    id: string;
+}
 
-    const [sessions, setSessions] = useState<Array<{ id: string; title?: string; updatedAt?: string }>>([]);
-    const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+const QWEN_API = "http://127.0.0.1:4097";
 
-    const fetchSessions = async () => {
-        setIsLoadingSessions(true);
-        try {
-            const client = createOpencodeClient({ baseUrl: "http://127.0.0.1:4096" });
-            const result = await client.session.list();
-            if (result.data) {
-                let list = Array.isArray(result.data) ? result.data : [];
-                if (selectedEmployee) {
-                    list = list.filter((s: any) => s.title && s.title.includes(selectedEmployee.codename));
-                }
-                setSessions(list as any);
-            }
-        } catch (err) {
-            console.error("Failed to fetch sessions", err);
-        } finally {
-            setIsLoadingSessions(false);
-        }
-    };
+function buildFullSystemPrompt(basePrompt: string | undefined, employee: Skill | null | undefined): string | undefined {
+    if (basePrompt) return basePrompt;
+    if (employee) return `You are ${employee.codename}, a specialized AI employee (${employee.title}).\n\nRole description: ${employee.description}\n\nStay in character and assist the user specifically using your skills and role boundaries.`;
+    return undefined;
+}
 
-    // reset console when changing employees
+export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initialMessage, className, disableCard }: OpenCodeConsoleProps) {
+    const [messages, setMessages] = useState<ConsoleMessage[]>([]);
+    const [input, setInput] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [connected, setConnected] = useState(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const initialSentRef = useRef(false);
+
+    // Check API connectivity
     useEffect(() => {
-        setOpenCodeMessages([]);
-        setOpenCodeSessionId(null);
-        fetchSessions();
+        const check = async () => {
+            try {
+                const res = await fetch(QWEN_API, { method: "OPTIONS" });
+                setConnected(res.ok);
+            } catch {
+                setConnected(false);
+            }
+        };
+        check();
+        const interval = setInterval(check, 10000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Reset on employee change
+    useEffect(() => {
+        setMessages([]);
+        initialSentRef.current = false;
     }, [selectedEmployee]);
 
-    const loadSessionMessages = async (sid: string) => {
-        setOpenCodeSessionId(sid);
-        setOpenCodeMessages([]);
-        setIsOpenCodeLoading(true);
-        try {
-            const client = createOpencodeClient({ baseUrl: "http://127.0.0.1:4096" });
-            const msgs = await client.session.messages({ path: { id: sid } });
-            if (msgs.data) {
-                const next: Array<{ role: "user" | "assistant"; text: string; id?: string }> = [];
-                for (const m of (msgs.data as any[])) {
-                    const textParts = m.parts?.filter((p: any) => p.type === "text").map((p: any) => p.text) || [];
-                    if (textParts.length > 0) {
-                        next.push({
-                            role: m.info?.role === "assistant" ? "assistant" : "user",
-                            text: textParts.join("\n"),
-                            id: m.info?.id
-                        });
-                    }
-                }
-                setOpenCodeMessages(next);
-            }
-        } catch (err) {
-            console.error("Failed to load messages", err);
-        } finally {
-            setIsOpenCodeLoading(false);
-        }
-    };
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
 
-    const handleNewChat = () => {
-        setOpenCodeSessionId(null);
-        setOpenCodeMessages([]);
-    };
+    // Use refs to always have latest values in closures
+    const systemPromptRef = useRef(systemPrompt);
+    useEffect(() => { systemPromptRef.current = systemPrompt; }, [systemPrompt]);
+    const employeeRef = useRef(selectedEmployee);
+    useEffect(() => { employeeRef.current = selectedEmployee; }, [selectedEmployee]);
 
-    const handleOpenCodeSubmit = async () => {
-        if (!openCodeInput.trim() || isOpenCodeLoading) return;
-        const inputText = openCodeInput.trim();
-        setOpenCodeInput("");
-        setOpenCodeMessages((msg) => [...msg, { role: "user", text: inputText, id: "user-" + Date.now() }]);
-        setIsOpenCodeLoading(true);
+    const sendQuery = async (promptText: string, overrideSystemPrompt?: string) => {
+        const userMsg: ConsoleMessage = {
+            role: "user",
+            text: promptText,
+            id: `user-${Date.now()}`,
+        };
+        setMessages(prev => [...prev, userMsg]);
+        setIsLoading(true);
+
+        const assistantId = `asst-${Date.now()}`;
+        setMessages(prev => [...prev, { role: "assistant", text: "", id: assistantId }]);
+
+    const sp = buildFullSystemPrompt(overrideSystemPrompt || systemPromptRef.current, employeeRef.current);
+        console.log("[Console] systemPrompt length:", sp?.length ?? 0, "override:", !!overrideSystemPrompt, "ref:", !!systemPromptRef.current);
 
         try {
-            const client = createOpencodeClient({ baseUrl: "http://127.0.0.1:4096" });
-            let sid = openCodeSessionId;
-
-            if (!sid) {
-                const title = selectedEmployee ? `Chat with ${selectedEmployee.codename}` : "Console Session";
-                const session = await client.session.create({ body: { title } });
-                if (!session.data) throw new Error("Failed to create session");
-                sid = (session.data as any).id;
-                setOpenCodeSessionId(sid);
-                fetchSessions();
-            }
-
-            let isDone = false;
-            const promptPromise = client.session.prompt({
-                path: { id: sid as string },
-                body: {
-                    noReply: false,
-                    system: systemPrompt || (selectedEmployee ? `You are ${selectedEmployee.codename}, a specialized AI employee (${selectedEmployee.title}).\n\nRole description: ${selectedEmployee.description}\n\nStay in character and assist the user specifically using your skills and role boundaries.` : undefined),
-                    parts: [{ type: "text", text: inputText }],
-                },
-            }).then(() => {
-                isDone = true;
-            }).catch((err) => {
-                isDone = true;
-                throw err;
+            const res = await fetch(`${QWEN_API}/api/query`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    prompt: promptText,
+                    systemPrompt: sp,
+                    permissionMode: "auto-edit",
+                }),
             });
 
-            const pollMessages = async () => {
-                const msgs = await client.session.messages({ path: { id: sid as string } });
-                if (msgs.data) {
-                    setOpenCodeMessages((prev) => {
-                        const next = [...prev];
-                        for (const m of msgs.data) {
-                            if (m.info?.role === "assistant") {
-                                const textParts = m.parts.filter((p: any) => p.type === "text").map((p: any) => p.text);
-                                if (textParts.length > 0) {
-                                    const text = textParts.join("\\n");
-                                    const existingIdx = next.findIndex((x) => x.id === m.info.id);
-                                    if (existingIdx >= 0) {
-                                        next[existingIdx].text = text;
-                                    } else {
-                                        next.push({ role: "assistant", text, id: m.info.id });
-                                    }
+            if (!res.ok || !res.body) {
+                throw new Error(`API error: ${res.status}`);
+            }
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+
+                if (value) {
+                    buffer += decoder.decode(value, { stream: true });
+                }
+                if (done) {
+                    buffer += decoder.decode();
+                }
+
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const msg = JSON.parse(line);
+                        if (msg.type === "done") {
+                            setIsLoading(false);
+                            continue;
+                        }
+                        if (msg.type === "error") {
+                            setMessages(prev => prev.map(m =>
+                                m.id === assistantId ? { ...m, text: m.text + `\n❌ Error: ${msg.data?.message || "Unknown error"}` } : m
+                            ));
+                            continue;
+                        }
+
+                        const data = msg.data;
+                        let chunk = "";
+                        let replace = false;
+
+                        // Stream events (real-time delta)
+                        if (msg.type === "stream_event" && data?.event) {
+                            const evt = data.event;
+                            if (evt.type === "content_block_delta" && evt.delta) {
+                                if (evt.delta.type === "text_delta" && evt.delta.text) {
+                                    chunk = evt.delta.text;
                                 }
                             }
                         }
-                        return next;
-                    });
+                        // Full assistant message (final) — replace
+                        else if (msg.type === "assistant" && data?.message?.content) {
+                            for (const block of data.message.content) {
+                                if (block.type === "text" && block.text) {
+                                    chunk += block.text;
+                                }
+                            }
+                            replace = true;
+                        }
+                        // Result — final
+                        else if (msg.type === "result") {
+                            if (data?.result) { chunk = data.result; replace = true; }
+                            setIsLoading(false);
+                        }
+
+                        if (chunk) {
+                            setMessages(prev => prev.map(m =>
+                                m.id === assistantId ? { ...m, text: replace ? chunk : m.text + chunk } : m
+                            ));
+                        }
+                    } catch {
+                        // skip malformed lines
+                    }
                 }
-            };
 
-            while (!isDone) {
-                await pollMessages();
-                await new Promise((res) => setTimeout(res, 500));
+                if (done) break;
             }
-
-            // One final fetch to ensure we have the complete message
-            await pollMessages();
-            await promptPromise;
-
         } catch (err: any) {
-            setOpenCodeMessages((msg) => [...msg, { role: "assistant", text: `Error: ${err.message}` }]);
+            setMessages(prev => prev.map(m =>
+                m.id === assistantId ? { ...m, text: m.text || `❌ Connection failed: ${err.message}\n\nMake sure qwen-code-api is running on port 4097.` } : m
+            ));
         } finally {
-            setIsOpenCodeLoading(false);
+            setIsLoading(false);
         }
+    };
+
+    // Auto-send initial message with current system prompt
+    useEffect(() => {
+        if (initialMessage && connected && !initialSentRef.current) {
+            initialSentRef.current = true;
+            sendQuery(initialMessage, systemPromptRef.current);
+        }
+    }, [initialMessage, connected]);
+
+    const handleSubmit = async () => {
+        if (!input.trim() || isLoading) return;
+        const text = input.trim();
+        setInput("");
+        await sendQuery(text);
     };
 
     const content = (
         <>
             {!disableCard && (
                 <div className="text-sm text-zinc-600">
-                    {selectedEmployee ? selectedEmployee.description : "Welcome to the Open Code Console. Start collaborating with AI directly from here."}
+                    {selectedEmployee ? selectedEmployee.description : "AI Employee Console"}
                 </div>
             )}
             <div className={cn("rounded-xl bg-[#1e1e1e] p-4 font-mono text-sm text-zinc-300 flex flex-col gap-4 min-h-0", className)}>
                 <div className="flex items-center justify-between border-b border-zinc-700 pb-3 mb-1 shrink-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-zinc-400">Session:</span>
-                        <select 
-                            className="bg-zinc-800 text-zinc-300 border border-zinc-700 rounded px-2 py-1 outline-none text-xs max-w-xs cursor-pointer focus:border-blue-500"
-                            value={openCodeSessionId || ""}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                if (val) loadSessionMessages(val);
-                                else handleNewChat();
-                            }}
-                        >
-                            <option value="">-- New Session --</option>
-                            {sessions.map(s => {
-                                let label = s.title || s.id;
-                                if (s.updatedAt) {
-                                    const date = new Date(s.updatedAt);
-                                    label += ` (${date.toLocaleDateString()} ${date.toLocaleTimeString()})`;
-                                }
-                                return <option key={s.id} value={s.id}>{label}</option>;
-                            })}
-                        </select>
-                        {isLoadingSessions && <span className="text-xs text-zinc-500 animate-pulse">Loading...</span>}
+                        <span className="text-zinc-400">Agent:</span>
+                        <span className="text-orange-400 font-bold">
+                            {selectedEmployee?.codename ?? "unknown"}
+                        </span>
+                        <span className={`inline-block w-2 h-2 rounded-full ${connected ? "bg-green-400" : "bg-red-400"}`} title={connected ? "Connected to Qwen API" : "Qwen API offline"} />
                     </div>
-                    <button 
-                        onClick={handleNewChat}
+                    <button
+                        onClick={() => setMessages([])}
                         className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1 rounded text-xs border border-zinc-700 transition-colors flex items-center gap-1 shadow-sm active:scale-95"
-                        title="Start a new chat session"
+                        title="Clear conversation"
                     >
                         <span>+</span> New Chat
                     </button>
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-2 min-h-0">
-                    {openCodeMessages.length === 0 && (
-                        <div className="text-zinc-500 italic">No messages yet. Send a prompt to start.</div>
+                    {messages.length === 0 && (
+                        <div className="text-zinc-500 italic">
+                            {connected
+                                ? "Connected to Qwen Code API. Send a prompt to start."
+                                : "⚠️ Qwen Code API not detected on port 4097. Start it with: node server/qwen-code-api.mjs"
+                            }
+                        </div>
                     )}
-                    {openCodeMessages.map((msg, i) => (
-                        <div key={i} className="flex gap-2">
-                            <span className={msg.role === "user" ? "text-blue-400 font-bold" : "text-[#ffbd2e] font-bold"}>
-                                {msg.role === "user" ? "USER" : "AGENT"}➜
+                    {messages.map((msg) => (
+                        <div key={msg.id} className="flex gap-2">
+                            <span className={
+                                msg.role === "user"
+                                    ? "text-blue-400 font-bold"
+                                    : msg.role === "system"
+                                        ? "text-zinc-500 font-bold"
+                                        : "text-[#ffbd2e] font-bold"
+                            }>
+                                {msg.role === "user" ? "USER" : msg.role === "system" ? "SYS" : "AGENT"}➜
                             </span>
-                            <span className="whitespace-pre-wrap">{msg.text}</span>
+                            {msg.role === "assistant" && msg.text === "" ? (
+                                <span className="animate-pulse text-zinc-500">🧠 thinking...</span>
+                            ) : (
+                                <span className="whitespace-pre-wrap">{msg.text}</span>
+                            )}
                         </div>
                     ))}
-                    {isOpenCodeLoading && (
-                        <div className="flex gap-2">
-                            <span className="text-[#ffbd2e] font-bold">AGENT➜</span>
-                            <span className="animate-pulse text-zinc-500">_ computing...</span>
-                        </div>
-                    )}
+                    <div ref={messagesEndRef} />
                 </div>
                 <div className="flex items-start gap-2 border-t border-zinc-700 pt-4 shrink-0">
                     <span className="text-[#4af626] mt-0.5">➜</span>
                     <textarea
-                        value={openCodeInput}
+                        value={input}
                         onChange={(e) => {
-                            setOpenCodeInput(e.target.value);
+                            setInput(e.target.value);
                             e.target.style.height = "auto";
                             e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
                         }}
                         onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault();
-                                handleOpenCodeSubmit();
-                                // Reset height after submit
+                                handleSubmit();
                                 e.currentTarget.style.height = "auto";
                             }
                         }}
-                        disabled={isOpenCodeLoading}
-                        placeholder={selectedEmployee ? `Type your prompt for ${selectedEmployee.codename}... (Shift+Enter for newline)` : "Type your prompt here... (Shift+Enter for newline)"}
+                        disabled={isLoading || !connected}
+                        placeholder={`Type your prompt for ${selectedEmployee?.codename ?? "agent"}... (Shift+Enter for newline)`}
                         className="flex-1 bg-transparent outline-none disabled:opacity-50 resize-none min-h-[24px] max-h-[120px] overflow-y-auto leading-normal py-0"
                         rows={1}
                     />
@@ -244,7 +273,7 @@ export default function OpenCodeConsole({ selectedEmployee, systemPrompt, classN
     }
 
     return (
-        <Card title={selectedEmployee ? `Collaborating with ${selectedEmployee.codename}` : "Open Code Console"}>
+        <Card title={selectedEmployee ? `Collaborating with ${selectedEmployee.codename}` : "AI Console"}>
             {content}
         </Card>
     );

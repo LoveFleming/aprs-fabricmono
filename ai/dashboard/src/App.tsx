@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { createOpencodeClient } from "@opencode-ai/sdk/client";
 
 /**
  * AI Software Factory — UI Portal (Preview Demo)
@@ -49,8 +48,8 @@ function groupByCategory(apps: PortalApp[]) {
 
 export default function App() {
   const [search, setSearch] = useState("");
-  const [activeAppId, setActiveAppId] = useState<string>("orchestrator-overview");
-  const [openTabs, setOpenTabs] = useState<string[]>(["orchestrator-overview"]);
+  const [activeAppId, setActiveAppId] = useState<string>("home");
+  const [openTabs, setOpenTabs] = useState<string[]>(["home"]);
 
   const openApp = (id: string) => {
     setOpenTabs((prev) => {
@@ -64,7 +63,7 @@ export default function App() {
     setOpenTabs((prev) => {
       const next = prev.filter((t) => t !== id);
       if (activeAppId === id) {
-        setActiveAppId(next.length > 0 ? next[next.length - 1] : "orchestrator-overview");
+        setActiveAppId(next.length > 0 ? next[next.length - 1] : "home");
       }
       return next;
     });
@@ -123,66 +122,6 @@ export default function App() {
     r.status = "running";
     pushLog(`[start] engine=${skill.engine} risk=${skill.risk}`);
 
-    if (skill.engine === "opencode") {
-      pushLog("[step] init Open Code client");
-      try {
-        const client = createOpencodeClient({ baseUrl: "http://127.0.0.1:4096" });
-
-        pushLog("[step] create session");
-        const session = await client.session.create({ body: { title: skill.title } });
-        if (!session.data) throw new Error("Failed to create session - no data returned");
-        pushLog(`[opencode] session created: ${session.data.id}`);
-
-        pushLog(`[step] send "hello world" prompt to agent`);
-        const result = await client.session.prompt({
-          path: { id: session.data.id },
-          body: {
-            noReply: true,
-            parts: [
-              {
-                type: "text",
-                text: skill.codename === "SpecScribe" ? "hello world" : `Run skill ${skill.codename}`
-              }
-            ]
-          }
-        });
-
-        pushLog(`[opencode] prompt accepted. Waiting for completion...`);
-
-        // Wait until session is idle/completed
-        let isDone = false;
-        while (!isDone) {
-          await new Promise(res => setTimeout(res, 1000));
-          const statusRes = await client.session.status({});
-          // The API returns an object where keys are session IDs and values are status objects
-          if (statusRes.data && (statusRes.data as any)[session.data.id]?.type === "idle") {
-            isDone = true;
-          }
-        }
-
-        // Fetch messages
-        const msgs = await client.session.messages({ path: { id: session.data.id } });
-        let aiOutput = "No messages found.";
-        if (msgs.data && msgs.data.length > 0) {
-          const lastMsg = msgs.data[msgs.data.length - 1];
-          const textParts = lastMsg.parts.filter(p => p.type === "text").map((p: any) => p.text);
-          aiOutput = textParts.join("\n");
-        }
-
-        r.aiJsonLines = [{ kind: "opencode-result", output: aiOutput }];
-        pushLog(`[opencode] session completed. Result read.`);
-        setRuns((xs) => xs.map((x) => (x.id === r.id ? { ...r } : x)));
-        // Also push the actual output to logs if desired
-        pushLog(`[opencode output]\n${aiOutput}`);
-        finish("success");
-      } catch (err: any) {
-        pushLog(`[opencode error] ${err.message}`);
-        r.aiJsonLines = [{ kind: "error", error: err.message || "Failed to connect to OpenCode CLI backend" }];
-        finish("failed");
-      }
-      return;
-    }
-
     const steps =
       skill.engine === "deterministic"
         ? ["validate inputs", "run tools", "collect artifacts", "record execution"]
@@ -228,14 +167,16 @@ export default function App() {
     if (activeAppId.startsWith("api.")) {
        return `API: ${activeAppId.slice(4)}`;
     }
-    if (activeAppId === "orchestrator-overview") return "Orchestrator Registry";
+    if (activeAppId === "home") return "Dashboard";
     if (activeAppId.startsWith("orch.")) {
         const [, , oId] = activeAppId.split(".");
         const o = ORCHESTRATORS.find(o => o.id === oId);
         return o ? o.name : "Orchestrator Workspace";
     }
-    if (activeAppId === "factory.standards") return "Factory Standards";
-    if (activeAppId === "home") return "Dashboard";
+    if (activeAppId === "factory.standards") return "Standards";
+    if (activeAppId === "factory.manifesto") return "Constitution";
+    if (activeAppId === "factory.crew") return "AI Crew";
+    if (activeAppId === "home") return "Quick Tour";
     return APPS.find((a) => a.id === activeAppId)?.title ?? "Dashboard";
   }, [activeAppId]);
 
@@ -248,14 +189,16 @@ export default function App() {
     if (id.startsWith("api.")) {
       return id.slice(4);
     }
-    if (id === "orchestrator-overview") return "Orchestrator Registry";
+    if (id === "home") return "Dashboard";
     if (id.startsWith("orch.")) {
         const [, , oId] = id.split(".");
         const o = ORCHESTRATORS.find(o => o.id === oId);
         return o ? o.name : id;
     }
     if (id === "factory.standards") return "Standards";
-    if (id === "home") return "Dashboard";
+    if (id === "factory.manifesto") return "Constitution";
+    if (id === "factory.crew") return "AI Crew";
+    if (id === "home") return "Quick Tour";
     return APPS.find((a) => a.id === id)?.title ?? id;
   };
 
@@ -271,30 +214,19 @@ export default function App() {
         const o = ORCHESTRATORS.find(o => o.id === oId);
         return o?.status === 'active' ? "safe" : o?.status === 'draft' ? "guarded" : "external";
     }
-    if (id === "orchestrator-overview") return "safe";
     if (id === "home") return "safe";
+    if (id === "home") return "safe";
+    if (id === "factory.standards") return "safe";
+    if (id === "factory.manifesto") return "safe";
+    if (id === "factory.crew") return "safe";
     return APPS.find((a) => a.id === id)?.risk ?? "safe";
   };
 
   const nav = useMemo(() => {
-    const dMap: Record<string, string[]> = {};
-    dMap["Registry"] = ["orchestrator-overview"];
-    for (const o of ORCHESTRATORS) {
-      if (!dMap[o.domain]) dMap[o.domain] = [];
-      dMap[o.domain].push(`orch.${o.domain}.${o.id}`);
-    }
     return {
-      "Product Domains": dMap["Registry"],
-      "Ops Console": [
-          "home", // old Ops Center
-          ...(appGroups.get("Monitoring") ?? []).map((a) => a.id),
-          ...(appGroups.get("Investigation") ?? []).map((a) => a.id),
-      ], // Note mapping the old ones correctly if 'home' is a string
-      "Factory Standards": ["factory.standards"],
-      "AI Collaboration": (appGroups.get("Execution") ?? []).map((a) => a.id),
-
+      "Factory": ["home", "factory.manifesto", "factory.standards", "factory.crew"],
     } as Record<string, string[]>;
-  }, [appGroups]);
+  }, []);
 
   // Operations Center metrics
   const todayIncidentCounts = useMemo(() => {
@@ -377,14 +309,27 @@ export default function App() {
   }, [runs, todayIncidentCounts.P1, todayIncidentCounts.P2, todayIncidentCounts.P3]);
 
   const renderContent = () => {
-    if (activeAppId === "orchestrator-overview") return <OrchestratorOverview openApp={openApp} />;
+    if (activeAppId === "home") return <OperationsCenter
+        runs={runs}
+        setActiveAppId={setActiveAppId}
+        setSelectedRunId={setSelectedRunId}
+        setSelectedIncidentId={setSelectedIncidentId}
+        runSkill={runSkill}
+        todayIncidentCounts={todayIncidentCounts}
+        runCounts={runCounts}
+        currentRuns={currentRuns}
+        todayIncidents={todayIncidents}
+        suggestions={suggestions}
+      />;
     if (activeAppId.startsWith("orch.")) {
       const [, domain, orchId] = activeAppId.split(".");
       return <OrchestratorWorkspace domain={domain} orchId={orchId} />;
     }
+    if (activeAppId === "factory.manifesto") return <FactoryStandards initialTab="manifesto" />;
     if (activeAppId === "factory.standards") return <FactoryStandards />;
     if (activeAppId === "home") return <OperationsCenter runs={runs} setActiveAppId={openApp} setSelectedRunId={setSelectedRunId} setSelectedIncidentId={setSelectedIncidentId} runSkill={runSkill} todayIncidentCounts={todayIncidentCounts} runCounts={runCounts} currentRuns={currentRuns} todayIncidents={todayIncidents} suggestions={suggestions} />;
 
+    if (activeAppId === "factory.crew") return <AICrew runSkill={runSkill} openApp={openApp} />;
     if (activeAppId === "exec.skills") return <AICrew runSkill={runSkill} openApp={openApp} />;
     if (activeAppId === "exec.gates") return <Gates runSkill={runSkill} />;
     if (activeAppId === "mon.report") return <Monitoring runSkill={runSkill} />;
@@ -417,24 +362,18 @@ export default function App() {
         <aside className="w-64 bg-white border-r border-zinc-200 flex-shrink-0 overflow-y-auto flex flex-col py-2">
           <div className="flex flex-col">
             {(Object.keys(nav) as string[]).map((cat) => {
-              const domTitle = cat === "Product Domains" ? cat : ["Ops Console","AI Collaboration","Factory Standards"].includes(cat) ? cat : `Domain: ${cat.toUpperCase()}`;
+              const domTitle = cat;
               return (
               <SidebarSection key={cat} title={domTitle}>
                 <div className="space-y-1">
                   {(nav[cat] ?? []).map((id) => {
                     const active = activeAppId === id;
-                    const risk = riskForApp(id);
                     return (
                       <NavItem
                         key={id}
                         active={active}
                         label={labelFor(id)}
                         onClick={() => openApp(id)}
-                        right={
-                          <span className={cn("rounded-full border px-2 py-0.5 text-[10px]", active ? "border-white/40 bg-white/10 text-white" : badgeClasses(risk))}>
-                            {risk}
-                          </span>
-                        }
                       />
                     );
                   })}
@@ -466,7 +405,7 @@ export default function App() {
                   )}
                 >
                   <span className="truncate whitespace-nowrap">{labelFor(tabId)}</span>
-                  {tabId !== "orchestrator-overview" && (
+                  {tabId !== "home" && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

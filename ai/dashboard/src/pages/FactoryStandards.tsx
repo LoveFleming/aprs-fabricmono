@@ -311,8 +311,10 @@ function ManifestoDetail({ section }: { section: StandardSection }) {
 }
 
 /* ── Main Page ── */
-export default function FactoryStandards() {
-  const [selectedId, setSelectedId] = useState<string>(ALL_STANDARDS[0].id);
+export default function FactoryStandards({ initialTab }: { initialTab?: string }) {
+  const [selectedId, setSelectedId] = useState<string>(
+    initialTab === "manifesto" && ALL_STANDARDS.length > 1 ? ALL_STANDARDS[1].id : ALL_STANDARDS[0].id
+  );
   const selected = ALL_STANDARDS.find(s => s.id === selectedId) ?? ALL_STANDARDS[0];
 
   return (
@@ -322,7 +324,7 @@ export default function FactoryStandards() {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
             <span className="text-2xl">📋</span>
-            <h1 className="text-xl font-bold text-zinc-800">Factory Standards</h1>
+            <h1 className="text-xl font-bold text-zinc-800">Factory</h1>
           </div>
           <p className="text-sm text-zinc-500 ml-10">
             軟體工廠的宣言、制度與規範 — AI 員工與人類工程師的共同參考
