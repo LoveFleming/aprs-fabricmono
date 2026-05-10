@@ -11,7 +11,6 @@
             "description": "分析系統訊號（Logs / Metrics / Traces），快速偵測異常模式",
             "enabled": false,
             "prompt": "分析系統訊號，偵測異常：\n\n1. Log 分析\n   - Error Log 頻率與模式\n   - Warning Log 趨勢\n   - 異常 Log Correlation\n   - Time-range 異常聚焦\n\n2. Metrics 分析\n   - Latency 異常（P50 / P95 / P99）\n   - Error Rate 突增\n   - Throughput 變化\n   - Resource 使用率異常\n\n3. Trace 分析\n   - Slow Span 定位\n   - Error Span 追蹤\n   - Service Dependency 異常\n   - Cross-service Latency 分佈\n\n產出訊號偵測報告，標註異常項目與嚴重程度。",
-            "knowledge": [],
             "requiredInputs": [
                 {
                     "id": "signal_source",
@@ -46,7 +45,6 @@
             "description": "根據異常訊號與系統架構，進行根因分析，定位問題源頭",
             "enabled": false,
             "prompt": "執行 Root Cause Analysis：\n\n1. 問題描述\n   - 異常現象摘要\n   - 影響範圍（Service / API / Node）\n   - 發生時間與持續時間\n\n2. 訊號 Correlation\n   - Log ↔ Metric ↔ Trace 關聯\n   - Time-series 對齊分析\n   - Service Dependency Chain\n\n3. 根因定位\n   - 直接原因 (Direct Cause)\n   - 根本原因 (Root Cause)\n   - 貢獻因素 (Contributing Factors)\n\n4. 影響評估\n   - 受影響的業務流程\n   - 使用者影響範圍\n   - 資料一致性風險\n\n產出結構化的 RCA 報告。",
-            "knowledge": [],
             "requiredInputs": [
                 {
                     "id": "rca_incident",
@@ -92,7 +90,6 @@
             "description": "系統性診斷流程，從訊號收集到問題確認的結構化步驟",
             "enabled": false,
             "prompt": "執行結構化系統診斷：\n\n1. 訊號收集\n   - 確認可用的 Observability 工具\n   - 收集相關 Logs / Metrics / Traces\n   - 確認時間範圍與基線\n\n2. 異常確認\n   - 與正常基線比較\n   - 確認是否為已知問題\n   - 評估嚴重程度\n\n3. 範圍縮小\n   - Service 層級定位\n   - Node / API 層級定位\n   - Dependency Chain 分析\n\n4. 根因假設\n   - 列出可能的根因假設\n   - 依可能性排序\n   - 建議驗證步驟\n\n產出診斷報告與建議的下一步行動。",
-            "knowledge": [],
             "requiredInputs": [
                 {
                     "id": "diag_symptom",
@@ -128,7 +125,6 @@
             "description": "在事件發生時提供即時故障排除支援，協助快速恢復服務",
             "enabled": false,
             "prompt": "提供事件故障排除支援：\n\n1. 事件分級\n   - Severity 評估（P1~P4）\n   - 影響範圍確認\n   - 使用者影響評估\n\n2. 快速回應\n   - 緊急止血建議（Mitigation）\n   - 關鍵指標監控清單\n   - 溝通建議（Status Page / 通知）\n\n3. 恢復計畫\n   - Recovery Steps\n   - 驗證清單（Service Health Check）\n   - Rollback 評估\n\n4. 事後檢討\n   - Timeline 重建\n   - Root Cause 摘要\n   - 預防措施建議\n   - Runbook 更新建議\n\n產出事件處理報告。",
-            "knowledge": [],
             "requiredInputs": [
                 {
                     "id": "incident_description",
@@ -168,13 +164,6 @@
             ]
         }
     ],
-    "outputs": [
-        "signal_detection_report.md",
-        "root_cause_analysis.md",
-        "diagnosis_report.md",
-        "incident_support_report.md"
-    ],
-    "engine": "opencode",
     "risk": "safe",
     "description": "故障排除與觀測工程師，善於觀測系統訊號，快速定位異常，結合 Logs、Metrics 與 Traces 進行故障排除，協助團隊縮短修復時間，提升服務穩定性。",
     "chatConfig": {

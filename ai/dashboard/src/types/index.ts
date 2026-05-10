@@ -10,7 +10,7 @@ export type PortalApp = {
     risk: Risk;
 };
 
-export type SkillEngine = "deterministic" | "cline";
+export type SkillEngine = "qwen" | "deterministic" | "cline";
 
 export interface RequiredInput {
     id: string;
@@ -44,9 +44,8 @@ export type Skill = {
     title: string;
     codename: string;
     imageUrl: string;
+    skillName?: string;
     skills: CrewSkill[];
-    outputs: string[];
-    engine: SkillEngine;
     risk: Risk;
     description: string;
     rolePrompt: string;
@@ -72,10 +71,6 @@ export function buildSystemPrompt(crew: Skill, selectedSkillIds?: string[], form
                 parts.push(`### ${key}\n${value}`);
             }
         }
-    }
-
-    if (crew.outputs.length > 0) {
-        parts.push(`\n## 輸出格式\n你的輸出應包含以下文件：${crew.outputs.join(', ')}`);
     }
 
     return parts.join('\n\n');

@@ -11,7 +11,6 @@
             "description": "從需求文件或 legacy code 中提取 user stories",
             "enabled": false,
             "prompt": "當收到需求時，請依以下格式萃取 user stories：\n- As a [角色], I want [功能], so that [價值]\n- 驗收條件 (Acceptance Criteria)\n- 邊界條件 (Edge Cases)\n- 依賴項 (Dependencies)",
-            "knowledge": ["specs/material/user-story/", "specs/rw/user-story/"],
             "requiredInputs": [
                 {
                     "id": "source_material",
@@ -55,7 +54,6 @@
             "description": "定義 API 與 Data contracts（JSON Schema）",
             "enabled": false,
             "prompt": "定義 API 合約時，請遵守以下規範：\n1. 使用 JSON Schema draft-07\n2. Request/Response 必須包含 example\n3. 錯誤回應使用統一 ErrorEnvelope\n4. 版本號格式：major.minor.patch\n5. API path 遵循 /api/v{version}/{domain}/{resource}",
-            "knowledge": ["specs-old/api-contracts/"],
             "requiredInputs": [
                 {
                     "id": "api_purpose",
@@ -117,7 +115,6 @@
             "description": "使用 DSL 草擬 orchestrator flow",
             "enabled": false,
             "prompt": "草擬 flow spec 時使用以下 DSL 格式：\nBLOCK:execute\n  RUN {nodeId} E:{policy}\nBLOCK:decision\n  IF {condition} THEN {branch}\n每個 node 必須標注 input/output/error handling。",
-            "knowledge": ["specs/material/orchestrator/"],
             "requiredInputs": [
                 {
                     "id": "flow_name",
@@ -165,12 +162,6 @@
             ]
         }
     ],
-    "outputs": [
-        "spec.md",
-        "flow.dsl",
-        "contract.json"
-    ],
-    "engine": "opencode",
     "risk": "safe",
     "description": "Specialized in transforming fuzzy requirements into technical specifications.",
     "chatConfig": {

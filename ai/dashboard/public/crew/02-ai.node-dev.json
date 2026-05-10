@@ -11,7 +11,6 @@
             "description": "引導操作員準備 node 開發的必要輸入資料",
             "enabled": false,
             "prompt": "操作員已提供完整的規格資料（見下方）。如果資料不完整或有疑問，請先向操作員確認再開始開發。\n\n確認清單：\n- [ ] Input 定義完整（觸發條件 + 資料結構 + 範例）\n- [ ] Output 定義完整（資料結構 + 範例）\n- [ ] Process Rules 清楚（流程 + 判斷邏輯）\n- [ ] Error Handling 完整（情境 + 處理方式 + 錯誤碼）",
-            "knowledge": [],
             "requiredInputs": [
                 {
                     "id": "input_trigger",
@@ -92,7 +91,6 @@
             "description": "根據規格生成符合 contract 的節點程式",
             "enabled": false,
             "prompt": "生成節點程式時必須遵循以下規範：\n\n1. 程式結構：\n   - main handler function（entry point）\n   - input validation（使用 JSON Schema）\n   - business logic（依 process rules）\n   - output formatting（符合 output contract）\n   - error handling（依 error handling spec）\n\n2. 必須包含：\n   - TypeScript types for input/output\n   - JSON Schema validation\n   - 結構化日誌\n   - Unit test skeleton\n\n3. 命名規範：\n   - 檔案：{domain}-{功能}-node.ts\n   - Handler：{功能}Handler\n   - Type：{功能}Input / {功能}Output\n\n4. 錯誤碼格式：{DOMAIN}_NODE_{CATEGORY}_{DETAIL}",
-            "knowledge": [],
             "requiredInputs": [
                 {
                     "id": "node_spec",
@@ -137,7 +135,6 @@
             "description": "驗證程式碼是否符合 node contract 規範",
             "enabled": false,
             "prompt": "驗證節點程式的 contract 合規：\n\n1. Input Schema 驗證：所有 required 欄位都有 validation\n2. Output Schema 驗證：輸出格式符合 contract\n3. Error Handling 驗證：每個錯誤情境都有對應處理\n4. 產生合規報告",
-            "knowledge": [],
             "requiredInputs": [
                 {
                     "id": "contract_def",
@@ -174,7 +171,6 @@
             "description": "為節點程式生成完整的測試案例",
             "enabled": false,
             "prompt": "生成節點測試時覆蓋：\n1. Happy path\n2. Edge cases\n3. Error cases\n4. Contract validation\n5. Integration mock\n\n測試檔案命名：{domain}-{功能}-node.test.ts",
-            "knowledge": [],
             "requiredInputs": [
                 {
                     "id": "test_source",
@@ -205,12 +201,6 @@
             ]
         }
     ],
-    "outputs": [
-        "{domain}-{功能}-node.ts",
-        "{domain}-{功能}-node.test.ts",
-        "contract_compliance_report.json"
-    ],
-    "engine": "opencode",
     "risk": "safe",
     "description": "開發符合規格的節點程式，開始前會先確認操作員準備好 Input、Output、Process Rules 和 Error Handling。",
     "chatConfig": {

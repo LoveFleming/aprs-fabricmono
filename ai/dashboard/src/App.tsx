@@ -105,7 +105,7 @@ export default function App() {
       createdAt: nowIso(),
       status: "queued",
       risk: skill.risk,
-      engine: skill.engine,
+      engine: "qwen",
       logs: [`[queue] queued: ${skill.id}`],
       aiJsonLines: [],
     };
@@ -132,12 +132,9 @@ export default function App() {
     }
 
     r.status = "running";
-    pushLog(`[start] engine=${skill.engine} risk=${skill.risk}`);
+    pushLog(`[start] risk=${skill.risk}`);
 
-    const steps =
-      skill.engine === "deterministic"
-        ? ["validate inputs", "run tools", "collect artifacts", "record execution"]
-        : ["load context", "plan patch", "generate diff", "suggest next gates", "record execution"];
+    const steps = ["load context", "plan patch", "generate diff", "suggest next gates", "record execution"];
 
     for (const s of steps) {
       // eslint-disable-next-line no-await-in-loop
@@ -145,23 +142,16 @@ export default function App() {
       pushLog(`[step] ${s}`);
     }
 
-    if (skill.engine === "cline") {
-      const fail = Math.random() < 0.25;
-      const ai = fail
-        ? [
-          { kind: "rca", rootCause: "Missing runbook mapping for new error code", evidence: ["rb missing", "lint failed"] },
-          { kind: "next", actions: ["Add runbook stub", "Re-run Q4", "Open PR via Outbound Gate"] },
-          { kind: "patch", files: ["runbooks/SYS_HTTP_TLS_HANDSHAKE.md"] },
-        ]
-        : [
-          { kind: "summary", message: "Generated patch & suggested tests" },
-          { kind: "patch", files: ["src/nodes/FooNode.ts", "src/nodes/__tests__/FooNode.test.ts"] },
-        ];
+    {
+      const ai = [
+        { kind: "summary", message: "Generated patch & suggested tests" },
+        { kind: "patch", files: ["src/nodes/FooNode.ts", "src/nodes/__tests__/FooNode.test.ts"] },
+      ];
 
       r.aiJsonLines = ai;
       pushLog("[AI] json lines emitted");
       setRuns((xs) => xs.map((x) => (x.id === r.id ? { ...r } : x)));
-      finish(fail ? "failed" : "success");
+      finish("success");
       return;
     }
 
