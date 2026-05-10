@@ -48,7 +48,7 @@ export default function FactoryDocument({ file, headerIcon = "📄", headerTitle
                 {!loading && content === null && (
                     <div className="text-center py-20 text-zinc-400">
                         <div className="text-4xl mb-3">📂</div>
-                        <p className="text-sm"><code className="bg-amber-50 px-1.5 py-0.5 rounded text-xs">ai/factory/{file}.md</code> not found</p>
+                        <p className="text-sm"><code className="bg-amber-50 px-1.5 py-0.5 rounded text-xs">public/factory/{file}.md</code> not found</p>
                     </div>
                 )}
 

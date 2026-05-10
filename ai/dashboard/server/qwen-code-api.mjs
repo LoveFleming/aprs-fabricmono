@@ -11,8 +11,13 @@
 
 import { createServer } from "http";
 import { readdir, readFile } from "fs/promises";
-import { join, resolve } from "path";
+import { join, resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 import { query, isSDKAssistantMessage, isSDKResultMessage, isSDKPartialAssistantMessage } from "@qwen-code/sdk";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const DASHBOARD_ROOT = resolve(__dirname, "..");
 
 const PORT = parseInt(process.env.QWEN_CODE_PORT || "4097", 10);
 const activeQueries = new Map(); // id -> AbortController
@@ -89,7 +94,7 @@ const server = createServer(async (req, res) => {
   const singleFileMatch = req.method === "GET" && req.url?.match(/^\/api\/factory-content\/([\w-]+)$/);
   if (singleFileMatch) {
     const name = singleFileMatch[1];
-    const factoryDir = resolve(process.cwd(), "../factory");
+    const factoryDir = resolve(DASHBOARD_ROOT, "public/factory");
     const filePath = join(factoryDir, `${name}.md`);
     try {
       const content = await readFile(filePath, "utf-8");
@@ -102,9 +107,9 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // GET /api/factory-content — list all markdown files from ai/factory/
+  // GET /api/factory-content — list all markdown files
   if (req.method === "GET" && req.url === "/api/factory-content") {
-    const factoryDir = resolve(process.cwd(), "../factory");
+    const factoryDir = resolve(DASHBOARD_ROOT, "public/factory");
     try {
       const files = await readdir(factoryDir);
       const mdFiles = files.filter(f => f.endsWith(".md")).sort();
