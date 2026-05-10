@@ -34,6 +34,7 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [connected, setConnected] = useState(false);
+    const abortControllerRef = useRef<AbortController | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const initialSentRef = useRef(false);
     const convIdRef = useRef(currentConvId);
@@ -166,6 +167,13 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
     useEffect(() => { employeeRef.current = selectedEmployee; }, [selectedEmployee]);
 
     const sendQuery = async (promptText: string, overrideSystemPrompt?: string) => {
+        // Abort any previous request
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         const userMsg: ConsoleMessage = {
             role: "user",
             text: promptText,
@@ -183,6 +191,7 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
             const res = await fetch(`${QWEN_API}/api/query`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                signal: controller.signal,
                 body: JSON.stringify({
                     prompt: promptText,
                     systemPrompt: sp,
@@ -265,11 +274,20 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                 if (done) break;
             }
         } catch (err: any) {
-            setMessages(prev => prev.map(m =>
-                m.id === assistantId ? { ...m, text: m.text || `❌ Connection failed: ${err.message}\n\nMake sure qwen-code-api is running on port 4097.` } : m
-            ));
+            if (err.name === "AbortError") {
+                setMessages(prev => prev.map(m =>
+                    m.id === assistantId ? { ...m, text: m.text || "⏹️ 已中斷" } : m
+                ));
+            } else {
+                setMessages(prev => prev.map(m =>
+                    m.id === assistantId ? { ...m, text: m.text || `❌ Connection failed: ${err.message}\n\nMake sure qwen-code-api is running on port 4097.` } : m
+                ));
+            }
         } finally {
             setIsLoading(false);
+            if (abortControllerRef.current === controller) {
+                abortControllerRef.current = null;
+            }
         }
     };
 
@@ -286,6 +304,14 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
         const text = input.trim();
         setInput("");
         await sendQuery(text);
+    };
+
+    const handleAbort = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+            setIsLoading(false);
+        }
     };
 
     // Handle new chat
@@ -355,8 +381,8 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                     ))}
                     <div ref={messagesEndRef} />
                 </div>
-                <div className="flex items-start gap-2 border-t border-stone-700 pt-4 shrink-0">
-                    <span className="text-green-400 mt-0.5">➜</span>
+                <div className="flex items-end gap-2 border-t border-stone-700 pt-4 shrink-0">
+                    <span className="text-green-400 mt-1">➜</span>
                     <textarea
                         value={input}
                         onChange={(e) => {
@@ -376,6 +402,24 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                         className="flex-1 bg-transparent outline-none disabled:opacity-50 resize-none min-h-[24px] max-h-[120px] overflow-y-auto leading-normal py-0"
                         rows={1}
                     />
+                    {isLoading ? (
+                        <button
+                            onClick={handleAbort}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-900/50 text-red-300 border border-red-700 hover:bg-red-800/60 transition-colors shrink-0"
+                            title="中斷"
+                        >
+                            ⏹ 中斷
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleSubmit}
+                            disabled={!input.trim() || !connected}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-stone-800 text-stone-300 border border-stone-600 hover:bg-stone-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                            title="送出"
+                        >
+                            ▶ 送出
+                        </button>
+                    )}
                 </div>
             </div>
         </>
