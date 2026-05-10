@@ -31,7 +31,8 @@ import EmployeeWorkspace from "./pages/EmployeeWorkspace";
 import FactoryStandards from "./pages/FactoryStandards";
 
 import { Card, RiskBadge, CodeBlock, SidebarSection, NavItem } from "./components/ui/shared";
-import { AppCategory, PortalApp, SkillEngine, Skill, RunStatus, Run, FlowSpec, Runbook, IncidentBundle, DataContract, Risk } from "./types";
+import { AppCategory, PortalApp, Skill, RunStatus, Run, FlowSpec, Runbook, IncidentBundle, DataContract, Risk } from "./types";
+import { ThemeProvider, useTheme, THEMES } from "./theme";
 import { nowIso, fmtTime, cn, shortId, safeJsonParse, randId, badgeClasses, statusClasses } from "./utils";
 import { APPS, SKILLS, FLOWS, RUNBOOKS, INCIDENTS, DATA_CONTRACTS } from "./data/mockData";
 
@@ -47,7 +48,7 @@ function groupByCategory(apps: PortalApp[]) {
   return map;
 }
 
-export default function App() {
+function AppInner() {
   const [search, setSearch] = useState("");
   const [activeAppId, setActiveAppId] = useState<string>("home");
   const [openTabs, setOpenTabs] = useState<string[]>(["home"]);
@@ -349,6 +350,8 @@ export default function App() {
     return <AICrew runSkill={runSkill} openApp={openApp} openEmployee={openEmployee} />;
   };
 
+  const { info: themeInfo, theme, setTheme } = useTheme();
+
   return (
     <div className="h-screen flex flex-col bg-orange-50/40 text-stone-800 font-sans selection:bg-amber-200 overflow-hidden">
       {/* Top Header */}
@@ -360,8 +363,24 @@ export default function App() {
             </svg>
           </button>
           <div className="text-lg font-bold tracking-tight text-white drop-shadow-sm" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
-            ☀️ My Factory
+            {themeInfo.headerLabel}
           </div>
+        </div>
+        {/* Theme switcher */}
+        <div className="flex items-center gap-1">
+          {(["sunny", "sky", "cyan"] as const).map(id => (
+            <button
+              key={id}
+              onClick={() => setTheme(id)}
+              className={cn(
+                "w-7 h-7 rounded-full text-sm flex items-center justify-center transition-all",
+                theme === id ? "bg-white/30 ring-2 ring-white" : "hover:bg-white/20"
+              )}
+              title={THEMES[id].label}
+            >
+              {THEMES[id].emoji}
+            </button>
+          ))}
         </div>
       </header>
 
@@ -452,4 +471,12 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+export default function App() {
+    return (
+        <ThemeProvider>
+            <AppInner />
+        </ThemeProvider>
+    );
 }
