@@ -2,7 +2,24 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, cn } from "../components/ui/shared";
 import { SKILLS } from "../data/mockData";
 import { Skill, CrewSkill, RequiredInput, buildSystemPrompt } from "../types";
-import OpenCodeConsole from "./OpenCodeConsole";
+import AgentConsole from "./AgentConsole";
+
+interface ModelOption {
+    id: string;
+    name: string;
+    contextWindowSize?: number;
+    vision?: boolean;
+    current: boolean;
+}
+
+interface ConvSummary {
+    id: string;
+    title: string;
+    createdAt: string;
+    updatedAt: string;
+    messageCount: number;
+    model: string;
+}
 
 interface EmployeeWorkspaceProps {
     employeeId: string;
@@ -159,6 +176,36 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
     const [showPromptModal, setShowPromptModal] = useState(false);
     const [showBriefing, setShowBriefing] = useState(false);
     const [formData, setFormData] = useState<Record<string, string>>({});
+    const [models, setModels] = useState<ModelOption[]>([]);
+    const [selectedModel, setSelectedModel] = useState<string>("");
+    const [conversations, setConversations] = useState<ConvSummary[]>([]);
+    const [showConvHistory, setShowConvHistory] = useState(false);
+
+    // Load models from server
+    useEffect(() => {
+        fetch("http://127.0.0.1:4097/api/models")
+            .then(r => r.json())
+            .then(data => {
+                const list: ModelOption[] = data.models || [];
+                setModels(list);
+                const current = list.find((m: ModelOption) => m.current);
+                if (current) setSelectedModel(current.id);
+            })
+            .catch(() => {});
+    }, []);
+
+    // Load conversation history
+    const loadConversations = useCallback(() => {
+        if (!employee) return;
+        fetch(`http://127.0.0.1:4097/api/conversations/${employee.id}`)
+            .then(r => r.json())
+            .then((list: ConvSummary[]) => setConversations(list))
+            .catch(() => setConversations([]));
+    }, [employee]);
+
+    useEffect(() => {
+        loadConversations();
+    }, [loadConversations]);
 
     useEffect(() => {
         if (employee) {
@@ -169,6 +216,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
             setChatStarted(false);
             setShowPromptModal(false);
             setShowBriefing(false);
+            setShowConvHistory(false);
             setFormData({});
             setSystemPrompt(buildSystemPrompt(employee, []));
         }
@@ -240,6 +288,35 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
         setShowBriefing(false);
     };
 
+    // Handle loading a past conversation
+    const handleLoadConv = async (convId: string) => {
+        if (!employee) return;
+        try {
+            const res = await fetch(`http://127.0.0.1:4097/api/conversations/${employee.id}/${convId}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.systemPrompt) setSystemPrompt(data.systemPrompt);
+            if (data.model) setSelectedModel(data.model);
+            setChatStarted(true);
+            setConsoleKey(prev => prev + 1);
+            setShowConvHistory(false);
+            setLoadedConvMessages(data.messages || []);
+            setLoadedConvId(convId);
+        } catch { /* silently fail */ }
+    };
+
+    const [loadedConvMessages, setLoadedConvMessages] = useState<Array<{role: string; text: string}> | null>(null);
+    const [loadedConvId, setLoadedConvId] = useState<string | undefined>(undefined);
+
+    // Handle deleting a conversation
+    const handleDeleteConv = async (convId: string) => {
+        if (!employee) return;
+        try {
+            await fetch(`http://127.0.0.1:4097/api/conversations/${employee.id}/${convId}`, { method: "DELETE" });
+            loadConversations();
+        } catch { /* silently fail */ }
+    };
+
     if (!employee) {
         return <div className="p-4 text-rose-500">Employee not found.</div>;
     }
@@ -256,7 +333,45 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
     }
 
     return (
-        <div className="flex flex-col h-full gap-2">
+        <div className="flex flex-col h-full gap-2 relative">
+            {/* Conversation history sidebar overlay */}
+            {showConvHistory && (
+                <div className="fixed inset-0 z-40 flex" onClick={() => setShowConvHistory(false)}>
+                    <div className="w-80 bg-white border-r border-orange-200 shadow-xl h-full overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="sticky top-0 bg-white border-b border-orange-100 px-4 py-3 flex items-center justify-between z-10">
+                            <h3 className="text-sm font-bold text-stone-700">💬 對話紀錄</h3>
+                            <button onClick={() => setShowConvHistory(false)} className="text-stone-400 hover:text-stone-600 text-lg">✕</button>
+                        </div>
+                        <div className="p-2">
+                            {conversations.length === 0 ? (
+                                <div className="text-center py-8 text-stone-400 text-xs">尚無對話紀錄</div>
+                            ) : (
+                                conversations.map(conv => (
+                                    <div key={conv.id} className="group relative">
+                                        <button
+                                            onClick={() => handleLoadConv(conv.id)}
+                                            className="w-full text-left p-3 rounded-xl hover:bg-orange-50 transition-colors border border-transparent hover:border-orange-200 mb-1"
+                                        >
+                                            <div className="text-xs font-medium text-stone-700 truncate">{conv.title}</div>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-[10px] text-stone-400">{new Date(conv.updatedAt).toLocaleString('zh-TW')}</span>
+                                                <span className="text-[10px] text-stone-300">·</span>
+                                                <span className="text-[10px] text-stone-400">{conv.messageCount} 則訊息</span>
+                                            </div>
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteConv(conv.id); }}
+                                            className="absolute top-2 right-2 w-5 h-5 rounded-full bg-stone-100 hover:bg-red-100 text-stone-300 hover:text-red-400 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="刪除"
+                                        >✕</button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Top panel: Employee header and skills */}
             <Card className="flex-none overflow-y-auto p-4">
                 <div className="flex gap-6 items-start">
@@ -279,6 +394,31 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                                 <p className="text-xs text-stone-400 mt-0.5">{employee.description}</p>
                             </div>
                             <div className="flex items-center gap-2 shrink-0 ml-4">
+                                {/* Conversation history toggle */}
+                                {conversations.length > 0 && (
+                                    <button
+                                        onClick={() => { loadConversations(); setShowConvHistory(true); }}
+                                        className="px-3 py-2 rounded-xl border border-orange-200 text-xs font-medium text-stone-500 hover:bg-amber-50/50 hover:border-orange-300 transition-all"
+                                        title="對話紀錄"
+                                    >
+                                        💬 紀錄 ({conversations.length})
+                                    </button>
+                                )}
+                                {/* Model selector */}
+                                {models.length > 0 && (
+                                    <select
+                                        value={selectedModel}
+                                        onChange={e => setSelectedModel(e.target.value)}
+                                        className="px-2 py-1.5 rounded-xl border border-orange-200 text-xs text-stone-500 bg-white hover:border-orange-300 transition-all max-w-[200px] truncate"
+                                        title="選擇 AI Model"
+                                    >
+                                        {models.map(m => (
+                                            <option key={m.id} value={m.id}>
+                                                {m.name.length > 35 ? m.name.slice(0, 35) + '...' : m.name} {m.current ? '★' : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                                 <button
                                     onClick={() => setShowPromptModal(true)}
                                     className="px-3 py-2 rounded-xl border border-orange-200 text-xs font-medium text-stone-500 hover:bg-amber-50/50 hover:border-orange-300 transition-all"
@@ -366,10 +506,13 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
             {/* Console area */}
             {chatStarted ? (
                 <Card className="flex-1 min-h-0 flex flex-col overflow-hidden p-0 border-0 bg-transparent shadow-none">
-                    <OpenCodeConsole
+                    <AgentConsole
                         key={`console-${consoleKey}`}
                         selectedEmployee={employee}
                         systemPrompt={systemPrompt}
+                        selectedModel={selectedModel}
+                        loadedConvMessages={loadedConvMessages}
+                        loadedConvId={loadedConvId}
                         initialMessage={chatStarted && Object.keys(formData).length > 0 ? buildInitialMessage(allRequiredInputs, formData, selectedSkillIds) : undefined}
                         className="flex-1 overflow-hidden m-0"
                         disableCard

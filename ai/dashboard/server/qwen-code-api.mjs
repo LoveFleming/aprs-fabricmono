@@ -10,7 +10,7 @@
  */
 
 import { createServer } from "http";
-import { readdir, readFile } from "fs/promises";
+import { readdir, readFile, writeFile, mkdir } from "fs/promises";
 import { join, resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { query, isSDKAssistantMessage, isSDKResultMessage, isSDKPartialAssistantMessage } from "@qwen-code/sdk";
@@ -25,7 +25,7 @@ const activeQueries = new Map(); // id -> AbortController
 const server = createServer(async (req, res) => {
   // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
 
@@ -34,7 +34,7 @@ const server = createServer(async (req, res) => {
     let parsed;
     try { parsed = JSON.parse(body); } catch { res.writeHead(400); res.end("Invalid JSON"); return; }
 
-    const { prompt: promptText, systemPrompt, cwd, permissionMode, sessionId: resumeId, coreTools } = parsed;
+    const { prompt: promptText, systemPrompt, cwd, permissionMode, sessionId: resumeId, coreTools, model } = parsed;
     console.log(`[API] query received, systemPrompt length: ${systemPrompt?.length ?? 0}`);
     if (!promptText) { res.writeHead(400); res.end("Missing 'prompt'"); return; }
 
@@ -58,6 +58,7 @@ const server = createServer(async (req, res) => {
           abortController,
           resume: resumeId || undefined,
           coreTools: coreTools || undefined,
+          model: model || undefined,
         },
       });
 
@@ -89,6 +90,136 @@ const server = createServer(async (req, res) => {
     res.end(JSON.stringify({ ok: true }));
     return;
   }
+
+  // GET /api/models — list available models from ~/.qwen/settings.json
+  if (req.method === "GET" && req.url === "/api/models") {
+    try {
+      const homeDir = process.env.HOME || process.env.USERPROFILE;
+      const settingsPath = join(homeDir, ".qwen/settings.json");
+      const raw = await readFile(settingsPath, "utf-8");
+      const settings = JSON.parse(raw);
+      const providers = settings.modelProviders || {};
+      const models = [];
+      const currentModel = settings.model?.name || "";
+      for (const [, list] of Object.entries(providers)) {
+        if (!Array.isArray(list)) continue;
+        for (const m of list) {
+          models.push({
+            id: m.id,
+            name: m.name,
+            contextWindowSize: m.generationConfig?.contextWindowSize,
+            vision: m.capabilities?.vision || false,
+            current: m.id === currentModel,
+          });
+        }
+      }
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ models, currentModel }));
+    } catch (err) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ models: [], currentModel: "", error: err.message }));
+    }
+    return;
+  }
+
+  // ── Conversation endpoints ──
+
+  // GET /api/conversations/:employeeId — list conversations
+  const convListMatch = req.method === "GET" && req.url?.match(/^\/api\/conversations\/([\w.-]+)$/);
+  if (convListMatch) {
+    const employeeId = convListMatch[1];
+    const convDir = resolve(DASHBOARD_ROOT, "public/crew/conversation", employeeId);
+    try {
+      await mkdir(convDir, { recursive: true });
+      const files = await readdir(convDir);
+      const jsonFiles = files.filter(f => f.endsWith(".json")).sort().reverse();
+      const conversations = await Promise.all(
+        jsonFiles.map(async (name) => {
+          try {
+            const raw = await readFile(join(convDir, name), "utf-8");
+            const data = JSON.parse(raw);
+            return {
+              id: name.replace(/\.json$/, ""),
+              title: data.title || name.replace(/\.json$/, ""),
+              createdAt: data.createdAt,
+              updatedAt: data.updatedAt || data.createdAt,
+              messageCount: data.messages?.length || 0,
+              model: data.model || "",
+            };
+          } catch { return null; }
+        })
+      );
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(conversations.filter(Boolean)));
+    } catch (err) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify([]));
+    }
+    return;
+  }
+
+  // GET /api/conversations/:employeeId/:convId — load a conversation
+  const convGetMatch = req.method === "GET" && req.url?.match(/^\/api\/conversations\/([\w.-]+)\/([\w.-]+)$/);
+  if (convGetMatch) {
+    const [, employeeId, convId] = convGetMatch;
+    const filePath = resolve(DASHBOARD_ROOT, "public/crew/conversation", employeeId, `${convId}.json`);
+    try {
+      const content = await readFile(filePath, "utf-8");
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(content);
+    } catch {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Conversation not found" }));
+    }
+    return;
+  }
+
+  // POST /api/conversations/:employeeId — save a conversation
+  const convSaveMatch = req.method === "POST" && req.url?.match(/^\/api\/conversations\/([\w.-]+)$/);
+  if (convSaveMatch) {
+    const employeeId = convSaveMatch[1];
+    const body = await readBody(req);
+    let parsed;
+    try { parsed = JSON.parse(body); } catch { res.writeHead(400); res.end("Invalid JSON"); return; }
+    const { id, title, messages, model, systemPrompt } = parsed;
+    if (!id) { res.writeHead(400); res.end("Missing 'id'"); return; }
+    const convDir = resolve(DASHBOARD_ROOT, "public/crew/conversation", employeeId);
+    await mkdir(convDir, { recursive: true });
+    const filePath = join(convDir, `${id}.json`);
+    const data = {
+      id,
+      employeeId,
+      title: title || id,
+      messages,
+      model: model || "",
+      systemPrompt: systemPrompt || "",
+      createdAt: parsed.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, id }));
+    return;
+  }
+
+  // DELETE /api/conversations/:employeeId/:convId — delete a conversation
+  const convDeleteMatch = req.method === "DELETE" && req.url?.match(/^\/api\/conversations\/([\w.-]+)\/([\w.-]+)$/);
+  if (convDeleteMatch) {
+    const [, employeeId, convId] = convDeleteMatch;
+    const filePath = resolve(DASHBOARD_ROOT, "public/crew/conversation", employeeId, `${convId}.json`);
+    const { unlink } = await import("fs/promises");
+    try {
+      await unlink(filePath);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+    } catch {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Conversation not found" }));
+    }
+    return;
+  }
+
+  // ── End Conversation endpoints ──
 
   // GET /api/factory-content/:name — single file
   const singleFileMatch = req.method === "GET" && req.url?.match(/^\/api\/factory-content\/([\w-]+)$/);

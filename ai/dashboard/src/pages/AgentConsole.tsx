@@ -1,16 +1,21 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Card, cn } from "../components/ui/shared";
 import { Skill } from "../types";
 
-interface OpenCodeConsoleProps {
+interface AgentConsoleProps {
     selectedEmployee?: Skill | null;
     systemPrompt?: string;
     initialMessage?: string;
     className?: string;
     disableCard?: boolean;
+    selectedModel?: string;
+    onLoadConversation?: (convId: string) => void;
+    currentConvId?: string;
+    loadedConvMessages?: Array<{ role: string; text: string }> | null;
+    loadedConvId?: string;
 }
 
-interface ConsoleMessage {
+export interface ConsoleMessage {
     role: "user" | "assistant" | "system";
     text: string;
     id: string;
@@ -24,13 +29,94 @@ function buildFullSystemPrompt(basePrompt: string | undefined, employee: Skill |
     return undefined;
 }
 
-export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initialMessage, className, disableCard }: OpenCodeConsoleProps) {
+export default function AgentConsole({ selectedEmployee, systemPrompt, initialMessage, className, disableCard, selectedModel, onLoadConversation, currentConvId, loadedConvMessages, loadedConvId }: AgentConsoleProps) {
     const [messages, setMessages] = useState<ConsoleMessage[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [connected, setConnected] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const initialSentRef = useRef(false);
+    const convIdRef = useRef(currentConvId);
+    const messagesRef = useRef(messages);
+
+    // Keep refs in sync
+    useEffect(() => { convIdRef.current = currentConvId; }, [currentConvId]);
+    useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+    // Save conversation to server
+    const selectedEmployeeRef = useRef(selectedEmployee);
+    useEffect(() => { selectedEmployeeRef.current = selectedEmployee; }, [selectedEmployee]);
+    const selectedModelRef = useRef(selectedModel);
+    useEffect(() => { selectedModelRef.current = selectedModel; }, [selectedModel]);
+    const systemPromptRef2 = useRef(systemPrompt);
+    useEffect(() => { systemPromptRef2.current = systemPrompt; }, [systemPrompt]);
+
+    const saveConversation = useCallback(async (msgs: ConsoleMessage[], convId?: string) => {
+        const emp = selectedEmployeeRef.current;
+        if (!emp || msgs.length === 0) return;
+        const id = convId || convIdRef.current || `conv-${Date.now()}`;
+        if (!convIdRef.current) convIdRef.current = id;
+
+        // Build title from first user message
+        const firstUserMsg = msgs.find(m => m.role === "user");
+        const title = firstUserMsg
+            ? firstUserMsg.text.slice(0, 60) + (firstUserMsg.text.length > 60 ? "..." : "")
+            : id;
+
+        try {
+            await fetch(`${QWEN_API}/api/conversations/${emp.id}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id,
+                    title,
+                    messages: msgs.map(m => ({ role: m.role, text: m.text })),
+                    model: selectedModelRef.current || "",
+                    systemPrompt: systemPromptRef2.current || "",
+                }),
+            });
+        } catch {
+            // Silently fail — conversations are best-effort
+        }
+    }, []);
+
+    // Auto-save when messages change (debounced, 3s)
+    const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+    useEffect(() => {
+        if (messages.length === 0) return;
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(() => {
+            saveConversation(messages);
+        }, 3000);
+        return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+    }, [messages]);
+
+    // Load conversation
+    const loadConversation = useCallback(async (convId: string) => {
+        if (!selectedEmployee) return;
+        try {
+            const res = await fetch(`${QWEN_API}/api/conversations/${selectedEmployee.id}/${convId}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            convIdRef.current = convId;
+            const loaded: ConsoleMessage[] = (data.messages || []).map((m: any, i: number) => ({
+                role: m.role,
+                text: m.text,
+                id: `${m.role}-${i}-${Date.now()}`,
+            }));
+            setMessages(loaded);
+            initialSentRef.current = true; // Don't auto-send initial message
+        } catch {
+            // Silently fail
+        }
+    }, [selectedEmployee]);
+
+    // Expose loadConversation to parent
+    useEffect(() => {
+        if (onLoadConversation) {
+            // We use a custom event pattern instead
+        }
+    }, [onLoadConversation]);
 
     // Check API connectivity
     useEffect(() => {
@@ -51,7 +137,23 @@ export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initia
     useEffect(() => {
         setMessages([]);
         initialSentRef.current = false;
-    }, [selectedEmployee]);
+        convIdRef.current = undefined;
+    }, [selectedEmployee?.id]);
+
+    // Load conversation messages when provided
+    useEffect(() => {
+        if (loadedConvMessages && loadedConvMessages.length > 0) {
+            const loaded: ConsoleMessage[] = loadedConvMessages.map((m, i) => ({
+                role: m.role as "user" | "assistant" | "system",
+                text: m.text,
+                id: `loaded-${i}-${Date.now()}`,
+            }));
+            setMessages(loaded);
+            initialSentRef.current = true;
+            // Set convId so auto-save updates the same conversation
+            if (loadedConvId) convIdRef.current = loadedConvId;
+        }
+    }, [loadedConvMessages, loadedConvId]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -75,8 +177,7 @@ export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initia
         const assistantId = `asst-${Date.now()}`;
         setMessages(prev => [...prev, { role: "assistant", text: "", id: assistantId }]);
 
-    const sp = buildFullSystemPrompt(overrideSystemPrompt || systemPromptRef.current, employeeRef.current);
-        console.log("[Console] systemPrompt length:", sp?.length ?? 0, "override:", !!overrideSystemPrompt, "ref:", !!systemPromptRef.current);
+        const sp = buildFullSystemPrompt(overrideSystemPrompt || systemPromptRef.current, employeeRef.current);
 
         try {
             const res = await fetch(`${QWEN_API}/api/query`, {
@@ -86,6 +187,7 @@ export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initia
                     prompt: promptText,
                     systemPrompt: sp,
                     permissionMode: "auto-edit",
+                    ...(selectedModel ? { model: selectedModel } : {}),
                 }),
             });
 
@@ -129,7 +231,6 @@ export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initia
                         let chunk = "";
                         let replace = false;
 
-                        // Stream events (real-time delta)
                         if (msg.type === "stream_event" && data?.event) {
                             const evt = data.event;
                             if (evt.type === "content_block_delta" && evt.delta) {
@@ -138,7 +239,6 @@ export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initia
                                 }
                             }
                         }
-                        // Full assistant message (final) — replace
                         else if (msg.type === "assistant" && data?.message?.content) {
                             for (const block of data.message.content) {
                                 if (block.type === "text" && block.text) {
@@ -147,7 +247,6 @@ export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initia
                             }
                             replace = true;
                         }
-                        // Result — final
                         else if (msg.type === "result") {
                             if (data?.result) { chunk = data.result; replace = true; }
                             setIsLoading(false);
@@ -189,6 +288,17 @@ export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initia
         await sendQuery(text);
     };
 
+    // Handle new chat
+    const handleNewChat = () => {
+        // Save current before clearing
+        if (messagesRef.current.length > 0) {
+            saveConversation(messagesRef.current);
+        }
+        setMessages([]);
+        convIdRef.current = undefined;
+        initialSentRef.current = false;
+    };
+
     const content = (
         <>
             {!disableCard && (
@@ -209,7 +319,7 @@ export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initia
                         />
                     </div>
                     <button
-                        onClick={() => setMessages([])}
+                        onClick={handleNewChat}
                         className="bg-stone-800 hover:bg-stone-700 text-stone-300 px-3 py-1 rounded-lg text-xs border border-stone-600 transition-colors flex items-center gap-1 active:scale-95"
                         title="Clear conversation"
                     >
