@@ -65,8 +65,8 @@ function BriefingForm({ inputs, onSubmit, onCancel }: {
             <div className="flex-1 overflow-y-auto px-6 py-4">
                 <div className="flex flex-col gap-6 max-w-4xl mx-auto">
                     <div className="text-center space-y-1">
-                        <h3 className="text-lg font-bold text-zinc-800">📋 工作需求表</h3>
-                        <p className="text-xs text-zinc-500">請填寫以下資料，讓員工知道要做什麼。必填欄位標記 *</p>
+                        <h3 className="text-lg font-bold text-stone-800">📋 工作需求表</h3>
+                        <p className="text-xs text-stone-400">請填寫以下資料，讓員工知道要做什麼。必填欄位標記 *</p>
                     </div>
 
                     {Array.from(groups.entries()).map(([groupName, groupInputs]) => (
@@ -74,11 +74,11 @@ function BriefingForm({ inputs, onSubmit, onCancel }: {
                             <div className="space-y-4">
                                 {groupInputs.map(input => (
                                     <div key={input.id}>
-                                        <label className="block text-sm font-semibold text-zinc-700 mb-1">
+                                        <label className="block text-sm font-semibold text-stone-600 mb-1">
                                             {input.label}
-                                            {input.required && <span className="text-red-500 ml-1">*</span>}
+                                            {input.required && <span className="text-rose-500 ml-1">*</span>}
                                         </label>
-                                        <p className="text-xs text-zinc-400 mb-1.5">{input.description}</p>
+                                        <p className="text-xs text-stone-400 mb-1.5">{input.description}</p>
                                         {input.multiline ? (
                                             <textarea
                                                 value={formData[input.id] || ""}
@@ -86,11 +86,11 @@ function BriefingForm({ inputs, onSubmit, onCancel }: {
                                                 placeholder={input.placeholder}
                                                 rows={6}
                                                 className={cn(
-                                                    "w-full rounded-xl border bg-zinc-50 px-3 py-2 text-sm font-mono transition-colors",
+                                                    "w-full rounded-xl border bg-amber-50/50 px-3 py-2 text-sm font-mono transition-colors",
                                                     "placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400",
                                                     input.required && !formData[input.id]?.trim()
                                                         ? "border-red-200 bg-red-50/30"
-                                                        : "border-zinc-200"
+                                                        : "border-orange-200"
                                                 )}
                                             />
                                         ) : (
@@ -100,11 +100,11 @@ function BriefingForm({ inputs, onSubmit, onCancel }: {
                                                 onChange={e => handleChange(input.id, e.target.value)}
                                                 placeholder={input.placeholder}
                                                 className={cn(
-                                                    "w-full rounded-xl border bg-zinc-50 px-3 py-2 text-sm font-mono transition-colors",
+                                                    "w-full rounded-xl border bg-amber-50/50 px-3 py-2 text-sm font-mono transition-colors",
                                                     "placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400",
                                                     input.required && !formData[input.id]?.trim()
                                                         ? "border-red-200 bg-red-50/30"
-                                                        : "border-zinc-200"
+                                                        : "border-orange-200"
                                                 )}
                                             />
                                         )}
@@ -117,10 +117,10 @@ function BriefingForm({ inputs, onSubmit, onCancel }: {
             </div>
 
             {/* Fixed bottom action bar */}
-            <div className="flex items-center justify-between px-6 py-3 bg-white border-t border-zinc-200 shrink-0">
+            <div className="flex items-center justify-between px-6 py-3 bg-white/80 backdrop-blur-sm border-t border-orange-100 shrink-0">
                 <button
                     onClick={onCancel}
-                    className="px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-500 hover:bg-zinc-100 transition-colors"
+                    className="px-4 py-2 rounded-xl border border-orange-200 text-sm text-stone-400 hover:bg-amber-50 transition-colors"
                 >
                     ← 返回
                 </button>
@@ -130,7 +130,7 @@ function BriefingForm({ inputs, onSubmit, onCancel }: {
                             還有 {missingRequired.length} 個必填欄位未填
                         </span>
                     ) : (
-                        <span className="text-xs text-green-500">✅ 資料齊全，可以開始！</span>
+                        <span className="text-xs text-emerald-500">✅ 資料齊全，可以開始！</span>
                     )}
                     <button
                         onClick={() => onSubmit(formData)}
@@ -139,7 +139,7 @@ function BriefingForm({ inputs, onSubmit, onCancel }: {
                             "px-6 py-2.5 rounded-xl text-sm font-bold transition-all",
                             missingRequired.length === 0
                                 ? "bg-orange-500 text-white hover:bg-orange-600 shadow-sm active:scale-95"
-                                : "bg-zinc-100 text-zinc-400 cursor-not-allowed"
+                                : "bg-amber-50 text-stone-400 cursor-not-allowed"
                         )}
                     >
                         🚀 開始 ({inputs.filter(i => formData[i.id]?.trim()).length}/{inputs.length} 已填)
@@ -241,7 +241,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
     };
 
     if (!employee) {
-        return <div className="p-4 text-red-500">Employee not found.</div>;
+        return <div className="p-4 text-rose-500">Employee not found.</div>;
     }
 
     // Show briefing form - full tab page
@@ -274,14 +274,14 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                             <div>
                                 <h2 className="text-lg font-bold text-stone-800">
                                     {employee.codename}
-                                    <span className="text-zinc-400 font-normal text-sm ml-2">({employee.title})</span>
+                                    <span className="text-stone-400 font-normal text-sm ml-2">({employee.title})</span>
                                 </h2>
-                                <p className="text-xs text-zinc-500 mt-0.5">{employee.description}</p>
+                                <p className="text-xs text-stone-400 mt-0.5">{employee.description}</p>
                             </div>
                             <div className="flex items-center gap-2 shrink-0 ml-4">
                                 <button
                                     onClick={() => setShowPromptModal(true)}
-                                    className="px-3 py-2 rounded-xl border border-zinc-200 text-xs font-medium text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300 transition-all"
+                                    className="px-3 py-2 rounded-xl border border-orange-200 text-xs font-medium text-stone-500 hover:bg-amber-50/50 hover:border-orange-300 transition-all"
                                 >
                                     📝 提示詞
                                 </button>
@@ -292,7 +292,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                                         "px-4 py-2 rounded-xl text-sm font-bold transition-all",
                                         selectedSkillIds.length > 0
                                             ? "bg-orange-500 text-white hover:bg-orange-600 shadow-sm active:scale-95"
-                                            : "bg-zinc-100 text-zinc-400 cursor-not-allowed"
+                                            : "bg-amber-50 text-stone-400 cursor-not-allowed"
                                     )}
                                 >
                                     {allRequiredInputs.length > 0 && !chatStarted
@@ -305,7 +305,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
 
                         {/* Skill selection */}
                         <div>
-                            <div className="font-semibold text-xs mb-2 text-zinc-600 uppercase tracking-wider">
+                            <div className="font-semibold text-xs mb-2 text-stone-500 uppercase tracking-wider">
                                 選擇要載入的技能
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -319,13 +319,13 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                                                 "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs cursor-pointer transition-all",
                                                 isSelected
                                                     ? "border-orange-400 bg-orange-50 text-orange-700 shadow-sm"
-                                                    : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+                                                    : "border-orange-200 bg-white text-stone-400 hover:border-orange-300"
                                             )}
                                         >
                                             <input
                                                 type="radio"
                                                 name="skill-select"
-                                                className="w-3.5 h-3.5 rounded-full border-zinc-300 accent-orange-500"
+                                                className="w-3.5 h-3.5 rounded-full border-orange-300 accent-orange-500"
                                                 checked={isSelected}
                                                 onChange={() => handleSkillToggle(skill.id)}
                                             />
@@ -344,13 +344,13 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                         {/* Form data summary (after submission) */}
                         {chatStarted && Object.keys(formData).length > 0 && (
                             <details className="mt-1">
-                                <summary className="text-xs text-zinc-400 cursor-pointer hover:text-zinc-600">
+                                <summary className="text-xs text-stone-400 cursor-pointer hover:text-stone-500">
                                     📋 已填寫 {Object.values(formData).filter(v => v.trim()).length}/{allRequiredInputs.length} 項規格資料
                                 </summary>
                                 <div className="mt-2 grid grid-cols-2 gap-2">
                                     {allRequiredInputs.map(input => (
                                         <div key={input.id} className="text-xs">
-                                            <span className="font-medium text-zinc-600">{input.group} → {input.label}:</span>
+                                            <span className="font-medium text-stone-500">{input.group} → {input.label}:</span>
                                             <span className={formData[input.id]?.trim() ? "text-green-600 ml-1" : "text-red-400 ml-1"}>
                                                 {formData[input.id]?.trim() ? "✓ 已填" : "✗ 未填"}
                                             </span>
@@ -376,18 +376,18 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                     />
                 </Card>
             ) : (
-                <Card className="flex-1 min-h-0 flex items-center justify-center border-dashed border-2 border-zinc-200 bg-zinc-50/50">
+                <Card className="flex-1 min-h-0 flex items-center justify-center border-dashed border-2 border-orange-200 bg-amber-50/50/50">
                     <div className="text-center space-y-2">
                         <div className="text-4xl">🤖</div>
                         {allRequiredInputs.length > 0 ? (
-                            <div className="text-sm text-zinc-400">
+                            <div className="text-sm text-stone-400">
                                 點「📋 填寫需求」準備規格資料，再開始開發
                             </div>
                         ) : (
-                            <div className="text-sm text-zinc-400">選擇一個技能後點 Start 來啟動 Console</div>
+                            <div className="text-sm text-stone-400">選擇一個技能後點 Start 來啟動 Console</div>
                         )}
                         <details className="mt-4 text-left">
-                            <summary className="text-xs text-zinc-400 cursor-pointer hover:text-zinc-600 text-center">
+                            <summary className="text-xs text-stone-400 cursor-pointer hover:text-stone-500 text-center">
                                 📝 預覽 System Prompt ({systemPrompt.length} 字元)
                             </summary>
                             <pre className="bg-zinc-900 text-green-400 p-4 rounded-xl text-[11px] whitespace-pre-wrap font-mono max-h-[300px] overflow-y-auto mt-2">
@@ -402,27 +402,27 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
             {showPromptModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPromptModal(false)}>
                     <div className="bg-white rounded-2xl shadow-2xl w-[700px] max-w-[90vw] max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-orange-100">
                             <div>
-                                <h3 className="text-base font-bold text-zinc-800">📝 System Prompt 預覽</h3>
-                                <p className="text-xs text-zinc-400 mt-0.5">
+                                <h3 className="text-base font-bold text-stone-800">📝 System Prompt 預覽</h3>
+                                <p className="text-xs text-stone-400 mt-0.5">
                                     {employee.codename} · {systemPrompt.length} 字元
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowPromptModal(false)}
-                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600 transition-colors"
+                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-amber-50 text-stone-400 hover:text-stone-500 transition-colors"
                             >
                                 ✕
                             </button>
                         </div>
-                        <div className="px-5 py-3 border-b border-zinc-100 flex flex-wrap gap-1.5">
+                        <div className="px-5 py-3 border-b border-orange-100 flex flex-wrap gap-1.5">
                             {employee.skills.map(s => (
                                 <span key={s.id} className={cn(
                                     "text-[10px] px-2 py-1 rounded-full",
                                     selectedSkillIds.includes(s.id)
                                         ? "bg-orange-100 text-orange-700"
-                                        : "bg-zinc-100 text-zinc-400 line-through"
+                                        : "bg-amber-50 text-stone-400 line-through"
                                 )}>
                                     {selectedSkillIds.includes(s.id) ? '✓' : '✗'} {s.name}
                                 </span>

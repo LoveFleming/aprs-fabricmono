@@ -196,18 +196,21 @@ export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initia
                     {selectedEmployee ? selectedEmployee.description : "AI Employee Console"}
                 </div>
             )}
-            <div className={cn("rounded-xl bg-[#1e1e1e] p-4 font-mono text-sm text-zinc-300 flex flex-col gap-4 min-h-0", className)}>
-                <div className="flex items-center justify-between border-b border-zinc-700 pb-3 mb-1 shrink-0">
+            <div className={cn("rounded-xl bg-slate-900 p-4 font-mono text-sm text-stone-300 flex flex-col gap-4 min-h-0", className)}>
+                <div className="flex items-center justify-between border-b border-stone-700 pb-3 mb-1 shrink-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-zinc-400">Agent:</span>
+                        <span className="text-stone-400">Agent:</span>
                         <span className="text-orange-400 font-bold">
                             {selectedEmployee?.codename ?? "unknown"}
                         </span>
-                        <span className={`inline-block w-2 h-2 rounded-full ${connected ? "bg-green-400" : "bg-red-400"}`} title={connected ? "Connected to Qwen API" : "Qwen API offline"} />
+                        <span
+                            className={`inline-block w-2 h-2 rounded-full ${connected ? "bg-emerald-400" : "bg-red-400"}`}
+                            title={connected ? "Connected" : "Offline"}
+                        />
                     </div>
                     <button
                         onClick={() => setMessages([])}
-                        className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1 rounded text-xs border border-zinc-700 transition-colors flex items-center gap-1 shadow-sm active:scale-95"
+                        className="bg-stone-800 hover:bg-stone-700 text-stone-300 px-3 py-1 rounded-lg text-xs border border-stone-600 transition-colors flex items-center gap-1 active:scale-95"
                         title="Clear conversation"
                     >
                         <span>+</span> New Chat
@@ -215,7 +218,7 @@ export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initia
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-4 pr-2 pb-2 min-h-0">
                     {messages.length === 0 && (
-                        <div className="text-zinc-500 italic">
+                        <div className="text-stone-500 italic">
                             {connected
                                 ? "Connected to Qwen Code API. Send a prompt to start."
                                 : "⚠️ Qwen Code API not detected on port 4097. Start it with: node server/qwen-code-api.mjs"
@@ -234,7 +237,7 @@ export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initia
                                 {msg.role === "user" ? "USER" : msg.role === "system" ? "SYS" : "AGENT"}➜
                             </span>
                             {msg.role === "assistant" && msg.text === "" ? (
-                                <span className="animate-pulse text-zinc-500">🧠 thinking...</span>
+                                <span className="animate-pulse text-amber-300">🧠 thinking...</span>
                             ) : (
                                 <span className="whitespace-pre-wrap">{msg.text}</span>
                             )}
@@ -242,8 +245,8 @@ export default function OpenCodeConsole({ selectedEmployee, systemPrompt, initia
                     ))}
                     <div ref={messagesEndRef} />
                 </div>
-                <div className="flex items-start gap-2 border-t border-zinc-700 pt-4 shrink-0">
-                    <span className="text-[#4af626] mt-0.5">➜</span>
+                <div className="flex items-start gap-2 border-t border-stone-700 pt-4 shrink-0">
+                    <span className="text-green-400 mt-0.5">➜</span>
                     <textarea
                         value={input}
                         onChange={(e) => {

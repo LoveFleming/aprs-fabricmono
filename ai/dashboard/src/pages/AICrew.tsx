@@ -6,9 +6,10 @@ import { Skill } from "../types";
 interface AICrewProps {
     runSkill: (skill: Skill) => Promise<void>;
     openApp: (id: string) => void;
+    openEmployee: (employeeId: string) => void;
 }
 
-export default function AICrew({ openApp }: AICrewProps) {
+export default function AICrew({ openEmployee }: AICrewProps) {
     return (
         <div className="flex flex-col space-y-4 h-full overflow-y-auto px-6">
             <Card title="AI Crew Members" className="border-0 shadow-none bg-transparent p-0">
@@ -17,7 +18,7 @@ export default function AICrew({ openApp }: AICrewProps) {
                     {SKILLS.map((s) => (
                         <button
                             key={s.id}
-                            onClick={() => openApp(`employee.${s.id}`)}
+                            onClick={() => openEmployee(s.id)}
                             className={cn(
                                 "flex flex-col rounded-2xl border bg-white p-0 overflow-hidden shadow-sm transition-all hover:shadow-md hover:-translate-y-1 group text-left",
                                 "border-orange-100 hover:border-orange-300"

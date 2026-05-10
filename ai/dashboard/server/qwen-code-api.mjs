@@ -44,7 +44,7 @@ const server = createServer(async (req, res) => {
       const q = query({
         prompt: promptText,
         options: {
-          cwd: cwd || process.cwd(),
+          cwd: cwd || resolve(process.cwd(), "../../"),
           systemPrompt: systemPrompt
             ? { type: "preset", preset: "qwen_code", append: systemPrompt }
             : { type: "preset", preset: "qwen_code" },

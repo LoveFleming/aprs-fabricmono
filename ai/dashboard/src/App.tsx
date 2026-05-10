@@ -51,6 +51,8 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [activeAppId, setActiveAppId] = useState<string>("home");
   const [openTabs, setOpenTabs] = useState<string[]>(["home"]);
+  const [instanceCounter, setInstanceCounter] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const openApp = (id: string) => {
     setOpenTabs((prev) => {
@@ -58,6 +60,15 @@ export default function App() {
       return prev;
     });
     setActiveAppId(id);
+  };
+
+  // Open a new employee workspace instance — always creates a fresh tab
+  const openEmployee = (employeeId: string) => {
+    const instanceId = `emp.${instanceCounter}`;
+    setInstanceCounter((c) => c + 1);
+    const tabId = `employee.${employeeId}#${instanceId}`;
+    setOpenTabs((prev) => [...prev, tabId]);
+    setActiveAppId(tabId);
   };
 
   const closeTab = (id: string) => {
@@ -161,7 +172,8 @@ export default function App() {
 
   const currentAppTitle = useMemo(() => {
     if (activeAppId.startsWith("employee.")) {
-      const empId = activeAppId.slice(9);
+      const [empPart] = activeAppId.split("#");
+      const empId = empPart.slice(9);
       const emp = SKILLS.find(s => s.id === empId);
       return emp ? emp.title : "Employee Workspace";
     }
@@ -184,9 +196,10 @@ export default function App() {
 
   const labelFor = (id: string) => {
     if (id.startsWith("employee.")) {
-      const empId = id.slice(9);
+      const [empPart] = id.split("#");
+      const empId = empPart.slice(9);
       const emp = SKILLS.find(s => s.id === empId);
-      return emp ? emp.codename : id;
+      return emp ? emp.codename : empId;
     }
     if (id.startsWith("api.")) {
       return id.slice(4);
@@ -207,7 +220,8 @@ export default function App() {
 
   const riskForApp = (id: string): Risk => {
     if (id.startsWith("employee.")) {
-      const empId = id.slice(9);
+      const [empPart] = id.split("#");
+      const empId = empPart.slice(9);
       const emp = SKILLS.find(s => s.id === empId);
       return emp ? emp.risk : "safe";
     }
@@ -312,8 +326,8 @@ export default function App() {
     return next.slice(0, 5);
   }, [runs, todayIncidentCounts.P1, todayIncidentCounts.P2, todayIncidentCounts.P3]);
 
-  const renderContent = () => {
-    if (activeAppId === "home") return <OperationsCenter
+  const renderTab = (tabId: string) => {
+    if (tabId === "home") return <OperationsCenter
         runs={runs}
         setActiveAppId={setActiveAppId}
         setSelectedRunId={setSelectedRunId}
@@ -325,46 +339,45 @@ export default function App() {
         todayIncidents={todayIncidents}
         suggestions={suggestions}
       />;
-    if (activeAppId === "factory.tour") return <FactoryDocument file="quick-tour" headerIcon="🏭" headerTitle="AI Software Factory" headerSub="快速導覽 — 5 分鐘理解工廠如何運作" />;
-    if (activeAppId.startsWith("orch.")) {
-      const [, domain, orchId] = activeAppId.split(".");
+    if (tabId === "factory.tour") return <FactoryDocument file="quick-tour" headerIcon="🏭" headerTitle="AI Software Factory" headerSub="快速導覽 — 5 分鐘理解工廠如何運作" />;
+    if (tabId.startsWith("orch.")) {
+      const [, domain, orchId] = tabId.split(".");
       return <OrchestratorWorkspace domain={domain} orchId={orchId} />;
     }
-    if (activeAppId === "factory.manifesto") return <FactoryDocument file="constitution" headerIcon="📜" headerTitle="Constitution" headerSub="工廠意法 — 核心原則與價值" />;
-    if (activeAppId === "factory.standards") return <FactoryDocument file="standards" headerIcon="📐" headerTitle="Standards" headerSub="工程標準與規範" />;
-    if (activeAppId === "home") return <OperationsCenter runs={runs} setActiveAppId={openApp} setSelectedRunId={setSelectedRunId} setSelectedIncidentId={setSelectedIncidentId} runSkill={runSkill} todayIncidentCounts={todayIncidentCounts} runCounts={runCounts} currentRuns={currentRuns} todayIncidents={todayIncidents} suggestions={suggestions} />;
-
-    if (activeAppId === "factory.crew") return <AICrew runSkill={runSkill} openApp={openApp} />;
-    if (activeAppId === "exec.skills") return <AICrew runSkill={runSkill} openApp={openApp} />;
-    if (activeAppId === "exec.gates") return <Gates runSkill={runSkill} />;
-    if (activeAppId === "mon.report") return <Monitoring runSkill={runSkill} />;
-    if (activeAppId === "inv.rca") return <Rca selectedIncidentId={selectedIncidentId} setSelectedIncidentId={setSelectedIncidentId} runSkill={runSkill} />;
-    if (activeAppId.startsWith("employee.")) {
-      const employeeId = activeAppId.slice(9);
+    if (tabId === "factory.manifesto") return <FactoryDocument file="constitution" headerIcon="📜" headerTitle="Constitution" headerSub="工廠意法 — 核心原則與價值" />;
+    if (tabId === "factory.standards") return <FactoryDocument file="standards" headerIcon="📐" headerTitle="Standards" headerSub="工程標準與規範" />;
+    if (tabId === "factory.crew") return <AICrew runSkill={runSkill} openApp={openApp} openEmployee={openEmployee} />;
+    if (tabId === "exec.skills") return <AICrew runSkill={runSkill} openApp={openApp} openEmployee={openEmployee} />;
+    if (tabId === "exec.gates") return <Gates runSkill={runSkill} />;
+    if (tabId === "mon.report") return <Monitoring runSkill={runSkill} />;
+    if (tabId === "inv.rca") return <Rca selectedIncidentId={selectedIncidentId} setSelectedIncidentId={setSelectedIncidentId} runSkill={runSkill} />;
+    if (tabId.startsWith("employee.")) {
+      const [empPart] = tabId.split("#");
+      const employeeId = empPart.slice(9);
       return <EmployeeWorkspace employeeId={employeeId} />;
     }
-    return <AICrew runSkill={runSkill} openApp={openApp} />;
+    return <AICrew runSkill={runSkill} openApp={openApp} openEmployee={openEmployee} />;
   };
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-50 text-stone-900 font-sans selection:bg-blue-100 overflow-hidden">
+    <div className="h-screen flex flex-col bg-orange-50/40 text-stone-800 font-sans selection:bg-amber-200 overflow-hidden">
       {/* Top Header */}
-      <header className="h-14 flex items-center justify-between bg-white border-b border-zinc-200 px-4 shrink-0 shadow-sm z-10">
+      <header className="h-14 flex items-center justify-between bg-orange-500 px-4 shrink-0 z-10">
         <div className="flex items-center gap-4">
-          <button className="p-2 -ml-2 rounded-full text-zinc-500 hover:bg-zinc-100 transition-colors">
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 -ml-2 rounded-full text-white/80 hover:bg-white/20 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           </button>
-          <div className="text-lg font-bold tracking-tight text-blue-700 italic" style={{ fontFamily: "cursive, sans-serif" }}>
-            ~MY FACTORY~
+          <div className="text-lg font-bold tracking-tight text-white drop-shadow-sm" style={{ fontFamily: "'SF Pro Display', sans-serif" }}>
+            ☀️ My Factory
           </div>
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-64 bg-white border-r border-zinc-200 flex-shrink-0 overflow-y-auto flex flex-col py-2">
+        <aside className={cn("bg-white border-r border-stone-200 flex-shrink-0 overflow-y-auto flex flex-col py-2 transition-all duration-200", sidebarOpen ? "w-64" : "w-0 border-r-0 overflow-hidden")}>
           <div className="flex flex-col">
             {(Object.keys(nav) as string[]).map((cat) => {
               const domTitle = cat;
@@ -392,10 +405,10 @@ export default function App() {
         </aside>
 
         {/* Main */}
-        <main className="flex-1 overflow-hidden bg-zinc-50 flex flex-col">
+        <main className="flex-1 overflow-hidden bg-orange-50/40 flex flex-col">
 
           {/* Tabs */}
-          <div className="flex w-full items-end gap-1 overflow-x-auto bg-zinc-100 px-4 pt-2 border-b border-zinc-200" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex w-full items-end gap-1 overflow-x-auto bg-stone-100 px-4 pt-2 border-b border-stone-200" style={{ scrollbarWidth: 'none' }}>
             {openTabs.map((tabId) => {
               const isActive = activeAppId === tabId;
               return (
@@ -405,8 +418,8 @@ export default function App() {
                   className={cn(
                     "group relative flex cursor-pointer items-center justify-between gap-3 px-4 py-2 text-sm transition-all border-t border-l border-r border-transparent rounded-t-md",
                     isActive
-                      ? "bg-white text-blue-600 font-medium border-zinc-200 -mb-px pb-[9px]"
-                      : "bg-transparent text-zinc-600 hover:bg-zinc-200/50"
+                      ? "bg-white text-orange-600 font-medium border-stone-200 -mb-px pb-[9px] shadow-sm"
+                      : "bg-transparent text-stone-500 hover:bg-stone-200/50"
                   )}
                 >
                   <span className="truncate whitespace-nowrap">{labelFor(tabId)}</span>
@@ -417,8 +430,8 @@ export default function App() {
                         closeTab(tabId);
                       }}
                       className={cn(
-                        "flex h-4 w-4 items-center justify-center rounded-full transition-colors hover:bg-zinc-200",
-                        isActive ? "text-zinc-400 hover:text-red-500" : "text-zinc-400 opacity-0 group-hover:opacity-100 hover:text-red-500"
+                        "flex h-4 w-4 items-center justify-center rounded-full transition-colors hover:bg-orange-200",
+                        isActive ? "text-stone-400 hover:text-rose-500" : "text-stone-400 opacity-0 group-hover:opacity-100 hover:text-rose-500"
                       )}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-3 w-3">
@@ -431,8 +444,19 @@ export default function App() {
             })}
           </div>
 
-          <div className="flex-1 w-full py-2 flex flex-col min-h-0 overflow-hidden bg-zinc-50">
-            {renderContent()}
+          <div className="flex-1 w-full py-2 flex flex-col min-h-0 overflow-hidden bg-orange-50/20 relative">
+            {openTabs.map((tabId) => (
+              <div
+                key={tabId}
+                className="absolute inset-0"
+                style={{
+                  visibility: activeAppId === tabId ? "visible" : "hidden",
+                  pointerEvents: activeAppId === tabId ? "auto" : "none",
+                }}
+              >
+                {renderTab(tabId)}
+              </div>
+            ))}
           </div>
         </main>
       </div>

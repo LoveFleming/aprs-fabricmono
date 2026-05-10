@@ -34,8 +34,8 @@ export default function FactoryDocument({ file, headerIcon = "📄", headerTitle
         <div className="h-full overflow-y-auto">
             <div className="max-w-5xl mx-auto py-8 px-6">
                 <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-zinc-800">{headerIcon} {headerTitle || file}</h1>
-                    {headerSub && <p className="text-sm text-zinc-500 mt-1">{headerSub}</p>}
+                    <h1 className="text-2xl font-bold text-stone-800">{headerIcon} {headerTitle || file}</h1>
+                    {headerSub && <p className="text-sm text-stone-400 mt-1">{headerSub}</p>}
                 </div>
 
                 {loading && (
@@ -48,16 +48,16 @@ export default function FactoryDocument({ file, headerIcon = "📄", headerTitle
                 {!loading && content === null && (
                     <div className="text-center py-20 text-zinc-400">
                         <div className="text-4xl mb-3">📂</div>
-                        <p className="text-sm"><code className="bg-zinc-100 px-1.5 py-0.5 rounded text-xs">ai/factory/{file}.md</code> not found</p>
+                        <p className="text-sm"><code className="bg-amber-50 px-1.5 py-0.5 rounded text-xs">ai/factory/{file}.md</code> not found</p>
                     </div>
                 )}
 
                 {!loading && slides.length > 0 && (
                     <div className="space-y-6">
                         {slides.map((slide, i) => (
-                            <div key={i} className="bg-white border border-zinc-200 rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                            <div key={i} className="bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                                 {slide.title && (
-                                    <div className="border-b border-zinc-100 px-8 py-4 bg-gradient-to-r from-zinc-50 to-white">
+                                    <div className="border-b border-stone-100 px-8 py-4 bg-orange-50/60">
                                         <h2 className="text-base font-bold text-zinc-800">{slide.title}</h2>
                                     </div>
                                 )}
@@ -69,15 +69,15 @@ export default function FactoryDocument({ file, headerIcon = "📄", headerTitle
             </div>
 
             <style>{`
-                .slide-content h1 { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin-bottom: 0.75rem; }
-                .slide-content h2 { font-size: 1.25rem; font-weight: 600; color: #334155; margin-bottom: 0.5rem; }
-                .slide-content h3 { font-size: 1.1rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem; }
-                .slide-content p { color: #475569; line-height: 1.75; margin-bottom: 0.5rem; font-size: 0.9rem; }
+                .slide-content h1 { font-size: 1.5rem; font-weight: 700; color: #44403c; margin-bottom: 0.75rem; }
+                .slide-content h2 { font-size: 1.25rem; font-weight: 600; color: #57534e; margin-bottom: 0.5rem; }
+                .slide-content h3 { font-size: 1.1rem; font-weight: 600; color: #78716c; margin-bottom: 0.5rem; }
+                .slide-content p { color: #57534e; line-height: 1.75; margin-bottom: 0.5rem; font-size: 0.9rem; }
                 .slide-content ul { list-style: none; padding: 0; margin: 0.25rem 0; }
                 .slide-content li { 
                     padding: 0.35rem 0 0.35rem 1.5rem; 
                     position: relative; 
-                    color: #475569; 
+                    color: #57534e; 
                     line-height: 1.6;
                     font-size: 0.9rem;
                 }
@@ -87,19 +87,19 @@ export default function FactoryDocument({ file, headerIcon = "📄", headerTitle
                     left: 0; top: 0.7rem; 
                     width: 6px; height: 6px; 
                     border-radius: 50%; 
-                    background: #3b82f6; 
+                    background: #f97316; 
                 }
-                .slide-content strong { color: #1e293b; font-weight: 600; }
-                .slide-content em { color: #6366f1; }
+                .slide-content strong { color: #44403c; font-weight: 600; }
+                .slide-content em { color: #ea580c; }
                 .slide-content code { 
-                    background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 0.25rem; 
-                    font-size: 0.8rem; font-family: 'SF Mono', 'Fira Code', monospace; color: #4f46e5;
+                    background: #fff7ed; padding: 0.1rem 0.4rem; border-radius: 0.25rem; 
+                    font-size: 0.8rem; font-family: 'SF Mono', 'Fira Code', monospace; color: #c2410c;
                 }
                 .slide-content pre { 
                     background: #1e293b; color: #e2e8f0; border-radius: 0.5rem; padding: 1rem; 
                     overflow-x: auto; margin: 0.5rem 0; font-size: 0.8rem; line-height: 1.5;
                 }
-                .slide-content hr { border: none; border-top: 1px solid #e2e8f0; margin: 1rem 0; }
+                .slide-content hr { border: none; border-top: 1px solid #e7e5e4; margin: 1rem 0; }
             `}</style>
         </div>
     );
