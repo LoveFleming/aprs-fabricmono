@@ -1,400 +1,424 @@
 # 快速導覽
 
-## 一句話定位
+給第一次進入 AI Software Factory 的人看的。
 
-**讓第一次進入 AI Software Factory 的成員，在 5 分鐘內理解這座工廠如何運作。**
+這份快速導覽的目的，不只是介紹功能，而是讓人快速理解：
 
----
-
-## 1. AI Software Factory 是什麼
-
-**AI Software Factory** 是一套以 **Spec 為核心** 的軟體生產系統。
-
-它將 API 開發流程標準化，讓需求、規格、程式、測試、文件、Runbook 與觀測資料可以沿著同一條生產線持續產出。
-
-核心概念：
-
-- **Spec 是單一真實來源**
-- **Orchestrator 負責協調流程**
-- **Node 封裝明確的業務邏輯**
-- **Data Contract 定義穩定的輸入與輸出**
-- **AI 依照 Spec 協助產生程式、測試、文件與 Runbook**
-- **Reviewer 與 Quality Gate 負責守住品質**
-
-目標不是單純加快寫程式速度，而是建立一套可重複、可檢查、可累積、可治理的軟體交付模式，並在提升交付效率的同時，持續維持高品質的天花板。
+> 這不是讓 AI 自由寫程式。  
+> 這是一條以 Spec 為核心、以 Gate 控制品質、由人做最後決策的 API 生產線。
 
 ---
 
-## 2. Single Source of Truth
+## 1. AI Software Factory 是什麼？
 
-在 AI Software Factory 中，**Spec 是單一真實來源**。
+AI Software Factory 是一套 **Spec-Driven、Gate-Controlled** 的軟體生產線。
 
-Spec 不是參考文件，而是軟體生產的依據。
-
-所有重要軟體資產都應以 Spec 為基礎進行產生、檢查或審查：
-
-- API Contract
-- Orchestrator Flow
-- Node Contract
-- Code
-- Unit Test
-- E2E Test
-- Runbook
-- Observability
-- Error Handling
-- Review Checklist
-
-核心原則：
+它不是單純讓 AI 幫忙寫程式，而是把軟體交付拆成一條可重複、可檢查、可治理的流程：
 
 ```text
-Spec 是生產依據。
-Spec 是審查依據。
-Spec 是測試依據。
-Spec 是上線依據。
-```
+Spec → Contract → Code → Test → Lint → Runtime Validation → Review → Release
+````
 
-任何會影響 API 行為、Orchestrator 流程、Node 行為、Data Contract、Error Handling、Test Expectation、Runbook 或 Observability 的程式變更，都必須更新對應的 Spec。
+在這條生產線裡：
 
-如果 Code 與 Spec 不一致，PR 不得通過。
+* Spec 是 Single Source of Truth
+* AI 根據 Spec 產生程式碼、測試、文件與 Runbook
+* Controller / Service / Orchestrator / Node 有清楚邊界
+* Node 有明確的 Input / Output Contract
+* Gate 負責檢查品質
+* Human Reviewer 負責最後判斷與放行
 
-```text
-No Spec, No Code.
-No Spec Alignment, No Release.
-```
+AI 在這裡不是自由創作者，而是受規格與工程規範約束的生產助理。
 
 ---
 
-## 3. 目前工廠能做什麼
+## 2. 為什麼我們需要 AI Software Factory？
 
-AI Software Factory 目前支援以下能力。
+我們真正要解決的問題，不只是「寫程式速度不夠快」，而是：
 
-### 3.1 規格建立
+* 需求不夠清楚
+* 規格沒有被落實
+* 程式邊界不清楚
+* 測試不足
+* Sanity check 不確實
+* 上線前才發現問題
+* 出事後難以追蹤原因
+* 文件、測試、Runbook 與程式碼不同步
 
-工廠可以協助建立與維護以下規格資產：
+傳統開發常常依賴工程師的經驗與記憶。
+但當系統變大、團隊變多、舊程式越來越複雜時，光靠人小心是不夠的。
 
-- API Spec
-- Orchestrator Spec
-- Node Spec
-- API Request / Response Contract
-- Node Input / Output Contract
-- Process Rules
-- Error Handling Rules
-- Observability Fields
-- Runbook Draft
+AI Software Factory 的目標是：
 
-### 3.2 程式產生
-
-AI 可以依照規格協助產生：
-
-- Controller Code
-- Orchestrator Code
-- Node Code
-- DTO / Contract Model
-- Unit Test Draft
-- E2E Test Draft
-- Runbook Draft
-- API Document Draft
-
-### 3.3 品質檢查
-
-工廠可以透過規格與檢查機制確認：
-
-- Spec 是否完整
-- API Contract 是否穩定
-- Node 命名是否具備業務語意
-- Node Input / Output 是否清楚
-- Error Code 是否符合命名規則
-- Unit Test 是否覆蓋主要邏輯
-- E2E Test 是否覆蓋關鍵流程
-- Runbook 是否可支援值班查案
-- Observability 是否足夠定位問題
-
-### 3.4 工程治理
-
-AI Software Factory 提供一致的工程治理方式：
-
-- 使用 Spec 作為人與 AI 的共同語言
-- 使用 Monorepo 管理規格、程式、測試與文件
-- 使用 PR Gate 阻擋低品質變更
-- 使用 Deterministic Gate 執行可重複的自動檢查
-- 使用 Reviewer 檢查規格、程式、測試與風險
+> 把品質要求變成工程制度，
+> 把交付流程變成可檢查的生產線，
+> 把 AI 的速度放進受控的框架裡。
 
 ---
 
-## 4. 如何開始一條 API 生產線
+## 3. 為什麼可以信任 AI 產生的程式？
 
-一條 API 生產線應從業務目的開始，而不是從程式碼開始。
+我們不是要求大家相信 AI。
 
-### Step 1：定義 API Business Intent
+我們要相信的是：
 
-首先定義 API 的業務目的。
+> 一條有 Spec、有程式邊界、有 Contract、有 100% unit test、有 regression test、有 Sonar、有 lint、有 fail-fast 的生產線。
 
-需要回答：
+AI 只是加速填標準零件，品質由 Spec、Contract、Test、Lint、Quality Gate 和 Human Review 來守。
+
+更重要的是：
+
+> Spec 不是只放在文件裡，Spec 會進入 runtime。
+
+如果程式碼改了，但 Spec 沒改；
+或是 Code 與 Contract 對不起來；
+系統會在啟動或執行前段 fail first / fail fast。
+
+這代表錯誤不會悄悄進入 production。
+
+AI 的產出必須受到以下控制：
+
+* 根據 Spec 產生程式碼
+* 遵守 Controller / Service / Orchestrator / Node 邊界
+* 遵守 Node Input / Output Contract
+* 遵守 Error Code 規則
+* 產生對應 Unit Test
+* 通過 Context Regression Test
+* 通過 Sonar 品質檢查
+* 通過 Lint 檢查
+* 通過 Runtime Contract Validation
+* 經過 PR Review 與 Human Approval
+
+所以這不是：
 
 ```text
-這支 API 要解決什麼業務問題？
-誰會使用這支 API？
-這支 API 要支援什麼查詢、判斷或操作？
+AI 寫完就上線
 ```
 
-範例：
+而是：
 
 ```text
-API Name:
-Lot Tool Material Check
-
-Business Intent:
-在執行 MES 操作前，檢查 Lot 是否可以使用指定 Tool 與 Material。
-```
-
-### Step 2：建立 API Spec
-
-API Spec 用來描述 API 的外部契約與業務目的。
-
-API Spec 應包含：
-
-- API Name
-- Endpoint
-- HTTP Method
-- Business Purpose
-- Request Schema
-- Response Schema
-- Error Response Schema
-- Security Requirement
-- Observability Requirement
-
-範例：
-
-```text
-POST /api/v1/rw/lot-tool-material-check
-```
-
-### Step 3：拆解 Orchestrator Flow
-
-Orchestrator 負責描述 API 的整體流程。
-
-範例：
-
-```text
-1. Validate Request
-2. Query Lot Information
-3. Check Lot Status
-4. Check Tool and Material Compatibility
-5. Return Check Result
-```
-
-設計原則：
-
-```text
-Orchestrator 負責協調流程，不承載過多業務細節。
-```
-
-業務邏輯應盡量封裝在具備清楚語意的 Node 中。
-
-### Step 4：設計 Business Nodes
-
-Node 是業務能力的封裝單位。
-
-每個 Node 應具備清楚的業務語意、穩定的輸入輸出，以及可測試的規則。
-
-好的 Node 名稱範例：
-
-```text
-QueryLotHoldData
-ValidateLotHoldRequest
-GetLotStatus
-CheckLotToolMaterialCompatibility
-```
-
-每個 Node 應定義：
-
-- Input Contract
-- Output Contract
-- Business Rules
-- Error Handling
-- Observability Fields
-- Unit Test Cases
-
-設計重點：
-
-```text
-責任清楚。
-業務語意清楚。
-輸入輸出清楚。
-測試情境清楚。
-```
-
-### Step 5：產生 Code、Test 與 Runbook
-
-當 Spec 穩定後，AI 可以依照規格協助產生實作內容：
-
-- Controller Code
-- Orchestrator Code
-- Node Code
-- DTO
-- Unit Tests
-- E2E Test Draft
-- Runbook Draft
-- API Document
-
-AI 負責加速生產，工程標準與 Reviewer 負責守住品質。
-
----
-
-## 5. 從 Spec 到 Code 的流程
-
-標準生產流程：
-
-```text
-Business Need
- ↓
-API Spec
- ↓
-Orchestrator Spec
- ↓
-Node Specs
- ↓
-Data Contracts
- ↓
-AI Code Generation
- ↓
-Unit Tests / E2E Tests
- ↓
-Reviewer Check
- ↓
-PR Gate
- ↓
-Deployment
- ↓
-Monitoring / Runbook Feedback
-```
-
-核心原則：
-
-> **Spec 驅動 Code、Test、Runbook 與 Observability。**
-
-Code 不應成為第一個真實來源。Spec 應作為設計、生產、驗證與維運的共同依據。
-
----
-
-## 6. 常見角色
-
-### 6.1 Spec Engineer
-
-**Spec Engineer** 是規格設計者，負責將業務需求與 Legacy Code 行為轉換成可生產、可驗證、可維護的規格。
-
-主要責任：
-
-- 理解業務目的
-- 分析 Legacy Code 行為
-- 定義 API Spec
-- 定義 Orchestrator Spec
-- 定義 Node Spec
-- 定義 Input / Output Contract
-- 辨識 Business Rules
-- 辨識 Error Handling Rules
-- 確保規格可被人與 AI 理解
-
-成功標準：
-
-```text
-Spec 清楚到工程師或 AI 可以依照它產生正確的程式、測試與文件。
-```
-
-### 6.2 Node Developer
-
-**Node Developer** 是依照 Node Spec 實作業務節點的角色。
-
-主要責任：
-
-- 實作 Node Logic
-- 遵守 Input / Output Contract
-- 正確處理 Business Error
-- 優先使用 Framework Utility
-- 撰寫 Unit Test
-- 保持 Node 責任清楚
-- 避免 Node 過大或語意不清
-
-成功標準：
-
-```text
-每個 Node 都具備清楚業務語意、穩定 Contract、可靠測試覆蓋。
-```
-
-### 6.3 Reviewer
-
-**Reviewer** 是品質守門員，負責確認規格、程式、測試與維運資訊符合工廠標準。
-
-主要責任：
-
-- Review Spec 是否完整
-- Review API Contract 是否穩定
-- Review Node 名稱是否具備業務語意
-- Review Orchestrator Flow 是否清楚
-- Review Error Handling 是否符合規則
-- Review Unit Test 是否覆蓋關鍵邏輯
-- Review E2E Test 是否覆蓋主要流程
-- Review Runbook 與 Observability 是否準備完成
-
-成功標準：
-
-```text
-不完整的 Spec、不清楚的 Node、缺少測試的變更、風險過高的修改，不能直接進入 Production。
+AI 產出 → Gate 檢查 → 人審核 → 才能放行
 ```
 
 ---
 
-## 7. 好的 API 生產線應具備什麼
+## 4. Spec 如何變成 Code？
 
-一條成熟的 API 生產線應具備：
+AI Software Factory 的核心流程是：
 
-- 清楚的 Business Intent
-- 穩定的 API Contract
-- 清楚的 Orchestrator Flow
-- 具備業務語意的 Nodes
-- 明確的 Input / Output Contract
-- 一致的 Error Code
-- Unit Tests
-- E2E Tests
-- Runbook
-- Observability Fields
-- PR Review
-- Quality Gates
+```text
+Business Requirement
+        ↓
+Spec
+        ↓
+API Contract / Node Contract / Orchestrator Spec
+        ↓
+Generated Code
+        ↓
+Generated Test
+        ↓
+Generated Runbook
+        ↓
+Quality Gates
+        ↓
+Human Review
+        ↓
+Release
+```
+
+Spec 不是一般文件，而是工程生產的起點。
+
+一份好的 Spec 需要說清楚：
+
+* API 要解決什麼業務問題
+* Input 是什麼
+* Output 是什麼
+* Orchestrator 流程是什麼
+* 每個 Node 的責任是什麼
+* 每個 Node 的 Input / Output Contract 是什麼
+* Business Rule 是什麼
+* Error Code 是什麼
+* 測試情境是什麼
+* Runbook 要如何處理異常
+
+AI 根據這些 Spec 產生：
+
+* Controller
+* Service
+* Orchestrator
+* Node
+* DTO
+* Unit Test
+* Regression Test
+* Error Mapping
+* Runbook Draft
+* Observability Fields
+
+也就是說，AI 不是憑空寫程式。
+AI 是根據規格，在標準框架裡產生可檢查的工程產物。
 
 ---
 
-## 8. 工廠心法
+## 5. Gate 如何保護品質？
 
-AI Software Factory 不是單純的 AI Coding Tool。它是一套軟體品質生產系統。
+Gate 是 AI Software Factory 的品質門禁。
 
-核心心法：
+Gate 不是提醒，也不是建議。
+Gate 是：
 
-```text
-Spec First.
-Contract First.
-Business Meaning First.
-Quality Gate Before Release.
-AI Helps Production, Standards Control Quality.
-```
+> 不通過，就不能往下走。
 
-```text
-規格優先。
-契約優先。
-業務語意優先。
-品質閘門先於上線。
-AI 負責加速生產，標準負責守住品質。
-```
+主要 Gate 包含：
+
+### Spec Gate
+
+檢查 Spec 是否清楚、完整、可實作。
+
+包含：
+
+* API 目的是否明確
+* Input / Output 是否定義清楚
+* Node 責任是否清楚
+* Orchestrator 流程是否合理
+* Error Code 是否符合規則
+* 測試情境是否足夠
+* Runbook 是否有對應處理方式
 
 ---
 
-## 9. 總結
+### Contract Gate
 
-AI Software Factory 透過標準化的 API 生產線，讓人與 AI 可以協作產出高品質軟體。
+檢查 Code 與 Contract 是否一致。
 
-標準流程：
+包含：
+
+* Request DTO 是否符合 API Contract
+* Response DTO 是否符合 API Contract
+* Node Input 是否符合 Node Contract
+* Node Output 是否符合 Node Contract
+* Required field 是否完整
+* Type 是否正確
+* Enum 是否符合規範
+
+---
+
+### Runtime Validation Gate
+
+Spec 會進入 runtime，成為執行期的約束。
+
+如果程式與 Spec / Contract 不一致，系統要能 fail first / fail fast。
+
+這代表：
+
+* 啟動時可以檢查 Spec 是否存在
+* 啟動時可以檢查 Contract 是否一致
+* 執行時可以檢查 Node Input / Output 是否符合規格
+* 不符合規格就快速失敗，不讓問題往後擴散
+
+---
+
+### Test Gate
+
+測試不是補充品，而是放行條件。
+
+包含：
+
+* Unit Test
+* Context Regression Test
+* API Test
+* Node Test
+* Orchestrator Flow Test
+
+目標是：
+
+> 每次修改都能確認新功能正確，舊行為沒有被破壞。
+
+---
+
+### Quality Gate
+
+用工具檢查程式品質。
+
+包含：
+
+* Sonar no code smell
+* Lint
+* Coverage
+* Duplicate code check
+* Naming convention check
+* Error code rule check
+* Forbidden dependency check
+
+---
+
+### PR Gate
+
+所有修改都要進入 PR 流程。
+
+PR 不只看 code，也要看：
+
+* Spec 是否同步修改
+* Test 是否同步補上
+* Runbook 是否同步更新
+* Gate report 是否通過
+* AI review 是否有提出風險
+* Human reviewer 是否同意放行
+
+---
+
+## 6. Human Reviewer 最後決定什麼？
+
+AI Software Factory 不代表人不重要。
+
+相反地，人的角色會更重要，只是工作重心會改變。
+
+以前人常常花很多時間在：
+
+* 寫 boilerplate code
+* 補重複的 test
+* 查 coding standard
+* 補文件
+* 補 Runbook
+* 做低價值的人工比對
+
+未來人的角色會往兩邊移動。
+
+---
+
+### 方向一：往上游，把 Spec 搞清楚
+
+這是最重要的工作。
+
+因為：
+
+> Spec 錯，Code 一定錯。
+
+人要負責釐清：
+
+* 真正的 business intent 是什麼
+* 使用者情境是什麼
+* 哪些是 business rule
+* 哪些是 exception case
+* 哪些是可接受的 fallback
+* 哪些情況必須 abort
+* 哪些情況需要人工 approval
+* 哪些行為要納入 regression test
+
+這類角色可以稱為：
 
 ```text
-Spec → Orchestrator → Node → Contract → Code → Test → Review → Release → Observe
+Spec Engineer
+Business Spec Owner
+API Designer
+Orchestrator Designer
 ```
 
-目標不是單純產出更多 API，而是建立一套可以長期累積、持續改善、穩定交付，並持續維持高品質天花板的軟體工廠。
+他們的重點不是寫更多 code，
+而是讓 AI 有正確、清楚、可檢查的規格可以執行。
+
+---
+
+### 方向二：往下游，成為工廠檢查員
+
+另一種人的角色，是成為 AI Software Factory 的品質檢查員。
+
+他們不需要逐行手寫所有程式，
+而是看：
+
+* Spec 是否合理
+* AI 產出的 code 是否符合標準
+* Gate report 是否通過
+* Test coverage 是否足夠
+* Regression result 是否安全
+* Sonar / Lint 是否乾淨
+* Error handling 是否完整
+* Runbook 是否可用
+* PR diff 是否超出範圍
+* 風險是否可以接受
+
+這類角色可以稱為：
+
+```text
+Factory Inspector
+AI Output Reviewer
+Quality Gate Reviewer
+Release Reviewer
+```
+
+人的價值會從「自己下去做所有苦工」，
+轉成「定義正確方向，檢查風險，做最後決策」。
+
+---
+
+## 7. 如何開始一條 API 生產線？
+
+開始一條 API 生產線，不是直接叫 AI 寫 code。
+
+正確流程是：
+
+```text
+1. 定義 API Business Intent
+2. 撰寫 API Spec
+3. 定義 API Contract
+4. 拆解 Orchestrator Flow
+5. 定義 Node Responsibility
+6. 定義 Node Input / Output Contract
+7. 定義 Error Code
+8. 定義 Test Case
+9. 定義 Runbook
+10. 讓 AI 產生程式碼與測試
+11. 執行 Gate
+12. Human Review
+13. Merge / Release
+```
+
+第一版不需要一次做到完美。
+重點是先讓每一支 API 都走同一條標準路徑。
+
+每完成一支 API，工廠就會累積：
+
+* 一份 Spec
+* 一組 Contract
+* 一組 Node
+* 一組 Test
+* 一份 Runbook
+* 一份 Gate Report
+* 一次可回溯的工程紀錄
+
+長期來看，這些不是單一 API 的產物，
+而是整座 AI Software Factory 的工程資產。
+
+---
+
+## 核心訊息
+
+我們不是要求大家相信 AI。
+
+我們是要求大家相信一條有：
+
+* Spec
+* Code Boundary
+* Contract
+* Runtime Validation
+* Unit Test
+* Regression Test
+* Sonar
+* Lint
+* Quality Gate
+* Human Approval
+
+的受控生產線。
+
+AI 負責加速。
+Spec 負責約束。
+Gate 負責放行。
+人負責最後決策。
+
+---
+
+## 最重要的一句話
+
+> AI Software Factory 不是讓 AI 自由寫程式，
+> 而是讓 AI 在 Spec、Contract、Runtime Validation、Test、Lint、Quality Gate 和 Human Approval 的約束下，生產可檢查、可回歸、可治理的軟體。
+
