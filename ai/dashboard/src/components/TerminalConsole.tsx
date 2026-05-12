@@ -90,7 +90,14 @@ export default function TerminalConsole({
         const observer = new ResizeObserver(onResize);
         observer.observe(el);
 
-        // 2. Connect WebSocket
+        // 2. Forward terminal keyboard input to WS (set up before connect)
+        term.onData((data: string) => {
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({ type: "input", text: data }));
+            }
+        });
+
+        // 3. Connect WebSocket
         const wsUrl = `ws://${window.location.hostname}:${WS_PORT}`;
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
