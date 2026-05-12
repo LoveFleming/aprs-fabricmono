@@ -328,7 +328,7 @@ server.listen(PORT, () => {
 
 // ── WebSocket server for PTY (Qwen CLI) ──
 const WS_PORT = parseInt(process.env.QWEN_WS_PORT || "4098", 10);
-const wss = new WebSocketServer({ port: WS_PORT });
+const wss = new WebSocketServer({ port: WS_PORT, host: "0.0.0.0" });
 const ptySessions = new Map(); // ws -> { pty, id }
 
 // Path to qwen CLI (auto-detect for Windows)

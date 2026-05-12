@@ -20,7 +20,7 @@ interface TerminalConsoleProps {
     onExit?: (code: number) => void;
 }
 
-const WS_URL = "ws://127.0.0.1:4098";
+const WS_URL = `ws://${window.location.hostname}:4098`;
 
 export default function TerminalConsole({
     cwd,
