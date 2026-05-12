@@ -409,8 +409,7 @@ wss.on("connection", (ws, req) => {
   const sessionId = `pty-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   console.log(`[PTY] New session: ${sessionId}`);
 
-  // We don't spawn PTY immediately — wait for a "spawn" message
-  // so the client can send options (cwd, model, approvalMode, systemPrompt)
+  let spawned = false; // Guard: only spawn once per WS connection
 
   ws.on("message", (raw) => {
     let msg;
@@ -422,6 +421,11 @@ wss.on("connection", (ws, req) => {
     }
 
     if (msg.type === "spawn") {
+      if (spawned) {
+        console.log(`[PTY] Ignoring duplicate spawn for ${sessionId}`);
+        return;
+      }
+      spawned = true;
       // Clean up previous PTY if any
       const old = ptySessions.get(ws);
       if (old?.pty) { old.pty.kill(); }
