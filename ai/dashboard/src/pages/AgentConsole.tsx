@@ -474,27 +474,49 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                         </div>
                     )}
                     {messages.map((msg) => (
-                        <div key={msg.id} className="flex gap-2 flex-col">
-                            <div className="flex gap-2">
-                                <span className={
-                                    msg.role === "user"
-                                        ? "text-blue-400 font-bold shrink-0"
-                                        : msg.role === "system"
-                                            ? "text-zinc-500 font-bold shrink-0"
-                                            : "text-[#ffbd2e] font-bold shrink-0"
-                                }>
-                                    {msg.role === "user" ? "USER" : msg.role === "system" ? "SYS" : "AGENT"}➜
-                                </span>
-                                {msg.role === "assistant" && msg.text === "" && !msg.thinking ? (
-                                    <span className="animate-pulse text-amber-300">🧠 thinking...</span>
-                                ) : (
-                                    <span className="whitespace-pre-wrap">{msg.text}</span>
-                                )}
-                            </div>
-                            {msg.role === "assistant" && msg.thinking && (
-                                <ThinkingBlock key={`thinking-${msg.id}`} thinking={msg.thinking} />
+                        <div key={msg.id} className="flex gap-2 leading-tight">
+                            <span className={
+                                msg.role === "user"
+                                    ? "text-blue-400 font-bold shrink-0"
+                                    : msg.role === "system"
+                                        ? "text-zinc-500 font-bold shrink-0"
+                                        : "text-[#ffbd2e] font-bold shrink-0"
+                            }>
+                                {msg.role === "user" ? "USER" : msg.role === "system" ? "SYS" : "AGENT"}➜
+                            </span>
+                            {msg.role === "assistant" && msg.text === "" && !msg.thinking ? null : (
+                                <span className="whitespace-pre-wrap">{msg.text}</span>
                             )}
                         </div>
+                    ))}
+                    {isLoading && (
+                        <div className="flex items-center gap-2 py-0.5">
+                            {activeApproval ? (
+                                <>
+                                    <span className="text-amber-400">⏳</span>
+                                    <span className="text-amber-300 text-xs animate-pulse">Waiting for approval...</span>
+                                </>
+                            ) : messages.some(m => m.role === "assistant" && !m.text && !m.thinking) || messages.length === 0 ? (
+                                <>
+                                    <span className="text-amber-400">🧠</span>
+                                    <span className="text-amber-300 text-xs animate-pulse">Thinking...</span>
+                                </>
+                            ) : messages.some(m => m.role === "assistant" && m.thinking && !m.text) ? (
+                                <>
+                                    <span className="text-amber-400">💭</span>
+                                    <span className="text-amber-300 text-xs animate-pulse">Reasoning... (thinking output available)</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="text-green-400">⚙️</span>
+                                    <span className="text-green-300 text-xs animate-pulse">Working...</span>
+                                </>
+                            )}
+                        </div>
+                    )}
+                    {/* Show thinking blocks for assistant messages */}
+                    {messages.filter(m => m.role === "assistant" && m.thinking).map((msg) => (
+                        <ThinkingBlock key={`thinking-${msg.id}`} thinking={msg.thinking!} />
                     ))}
                     <div ref={messagesEndRef} />
                 </div>
