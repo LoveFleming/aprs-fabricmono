@@ -21,6 +21,7 @@ const DASHBOARD_ROOT = resolve(__dirname, "..");
 
 const PORT = parseInt(process.env.QWEN_CODE_PORT || "4097", 10);
 const activeQueries = new Map(); // id -> AbortController
+const pendingApprovals = new Map(); // queryId -> { resolve, toolName, toolInput, requestId }
 
 const server = createServer(async (req, res) => {
   // CORS
@@ -42,6 +43,19 @@ const server = createServer(async (req, res) => {
     const abortController = new AbortController();
     activeQueries.set(queryId, abortController);
 
+    // Helper: ask the browser for approval via the NDJSON stream
+    const askBrowserApproval = async (toolName, toolInput) => {
+      const requestId = `approval-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      return new Promise((resolve) => {
+        pendingApprovals.set(queryId, { resolve, toolName, toolInput, requestId });
+        // Send approval_request event to the browser
+        res.write(JSON.stringify({
+          type: "approval_request",
+          data: { queryId, requestId, toolName, toolInput },
+        }) + "\n");
+      });
+    };
+
     // NDJSON streaming
     res.writeHead(200, { "Content-Type": "application/x-ndjson", "Transfer-Encoding": "chunked" });
 
@@ -53,12 +67,16 @@ const server = createServer(async (req, res) => {
           systemPrompt: systemPrompt
             ? { type: "preset", preset: "qwen_code", append: systemPrompt }
             : { type: "preset", preset: "qwen_code" },
-          permissionMode: permissionMode || "auto-edit",
+          permissionMode: permissionMode || "default",
           includePartialMessages: true,
           abortController,
           resume: resumeId || undefined,
           coreTools: coreTools || undefined,
           model: model || undefined,
+          canUseTool: async (toolName, toolInput) => {
+            console.log(`[API] canUseTool: ${toolName}`);
+            return await askBrowserApproval(toolName, toolInput);
+          },
         },
       });
 
@@ -74,6 +92,12 @@ const server = createServer(async (req, res) => {
       res.write(JSON.stringify({ type: "error", data: { message: err.message } }) + "\n");
     } finally {
       activeQueries.delete(queryId);
+      // Reject any pending approvals so the SDK doesn't hang
+      const pending = pendingApprovals.get(queryId);
+      if (pending) {
+        pending.resolve({ behavior: "deny", message: "Query ended." });
+        pendingApprovals.delete(queryId);
+      }
       res.end();
     }
     return;
@@ -86,6 +110,29 @@ const server = createServer(async (req, res) => {
     const { queryId } = parsed;
     const ac = activeQueries.get(queryId);
     if (ac) { ac.abort(); activeQueries.delete(queryId); }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  // POST /api/approve — resolve a pending approval request from the browser
+  if (req.method === "POST" && req.url === "/api/approve") {
+    const body = await readBody(req);
+    let parsed;
+    try { parsed = JSON.parse(body); } catch { res.writeHead(400); res.end("Invalid JSON"); return; }
+    const { queryId, requestId, approved, modifiedInput } = parsed;
+    const pending = pendingApprovals.get(queryId);
+    if (!pending || pending.requestId !== requestId) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "No pending approval for this query/request" }));
+      return;
+    }
+    if (approved) {
+      pending.resolve({ behavior: "allow", updatedInput: modifiedInput || pending.toolInput });
+    } else {
+      pending.resolve({ behavior: "deny", message: "User denied this tool use." });
+    }
+    pendingApprovals.delete(queryId);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
     return;

@@ -77,12 +77,21 @@ function suffixAfter(accumulated: string, turnText: string): string {
     return turnText;
 }
 
+interface ApprovalRequest {
+    queryId: string;
+    requestId: string;
+    toolName: string;
+    toolInput: unknown;
+}
+
 export default function AgentConsole({ selectedEmployee, systemPrompt, initialMessage, className, disableCard, selectedModel, onLoadConversation, currentConvId, loadedConvMessages, loadedConvId }: AgentConsoleProps) {
     const [messages, setMessages] = useState<ConsoleMessage[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [connected, setConnected] = useState(false);
+    const [activeApproval, setActiveApproval] = useState<ApprovalRequest | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const queryIdRef = useRef<string | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const initialSentRef = useRef(false);
     const convIdRef = useRef(currentConvId);
@@ -185,6 +194,7 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
     // Reset on employee change
     useEffect(() => {
         setMessages([]);
+        setActiveApproval(null);
         initialSentRef.current = false;
         convIdRef.current = undefined;
     }, [selectedEmployee?.id]);
@@ -246,7 +256,7 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                 body: JSON.stringify({
                     prompt: promptText,
                     systemPrompt: sp,
-                    permissionMode: "yolo",
+                    permissionMode: "default",
                     ...(selectedModel ? { model: selectedModel } : {}),
                 }),
             });
@@ -278,12 +288,21 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                         const msg = JSON.parse(line);
                         if (msg.type === "done") {
                             setIsLoading(false);
+                            setActiveApproval(null);
                             continue;
                         }
                         if (msg.type === "error") {
+                            setActiveApproval(null);
                             setMessages(prev => prev.map(m =>
                                 m.id === assistantId ? { ...m, text: m.text + `\n❌ Error: ${msg.data?.message || "Unknown error"}` } : m
                             ));
+                            continue;
+                        }
+                        // Handle approval requests from the server
+                        if (msg.type === "approval_request") {
+                            const { queryId, requestId, toolName, toolInput } = msg.data || {};
+                            queryIdRef.current = queryId;
+                            setActiveApproval({ queryId, requestId, toolName, toolInput });
                             continue;
                         }
 
@@ -369,6 +388,28 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
             sendQuery(initialMessage, systemPromptRef.current);
         }
     }, [initialMessage, connected]);
+
+    const handleApproval = async (approved: boolean) => {
+        if (!activeApproval) return;
+        const { queryId, requestId, toolName } = activeApproval;
+        setActiveApproval(null);
+        try {
+            await fetch(`${QWEN_API}/api/approve`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ queryId, requestId, approved }),
+            });
+            if (!approved) {
+                setMessages(prev => [...prev, {
+                    role: "system",
+                    text: `⛔ Denied: ${toolName}`,
+                    id: `sys-deny-${Date.now()}`,
+                }]);
+            }
+        } catch {
+            // Approval send failed — query may have ended
+        }
+    };
 
     const handleSubmit = async () => {
         if (!input.trim() || isLoading) return;
@@ -457,6 +498,32 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                     ))}
                     <div ref={messagesEndRef} />
                 </div>
+                {activeApproval && (
+                    <div className="shrink-0 border-t border-amber-700/50 bg-amber-950/30 px-4 py-3">
+                        <div className="flex items-start gap-3">
+                            <span className="text-amber-400 text-lg">⚠️</span>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-sm font-bold text-amber-300 mb-1">Approval Required</div>
+                                <div className="text-xs text-stone-400 mb-1">Tool: <span className="text-amber-200 font-mono">{activeApproval.toolName}</span></div>
+                                <pre className="text-xs text-stone-500 whitespace-pre-wrap font-mono leading-relaxed max-h-[120px] overflow-y-auto bg-black/20 rounded px-2 py-1 mb-2">{typeof activeApproval.toolInput === "string" ? activeApproval.toolInput : JSON.stringify(activeApproval.toolInput, null, 2)}</pre>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handleApproval(true)}
+                                        className="px-4 py-1.5 rounded-lg text-xs font-bold bg-green-800/60 text-green-300 border border-green-600 hover:bg-green-700/70 transition-colors"
+                                    >
+                                        ✅ Allow
+                                    </button>
+                                    <button
+                                        onClick={() => handleApproval(false)}
+                                        className="px-4 py-1.5 rounded-lg text-xs font-bold bg-red-900/50 text-red-300 border border-red-700 hover:bg-red-800/60 transition-colors"
+                                    >
+                                        ❌ Deny
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 <div className="flex items-end gap-2 border-t border-stone-700 pt-4 shrink-0">
                     <span className="text-green-400 mt-1">➜</span>
                     <textarea
