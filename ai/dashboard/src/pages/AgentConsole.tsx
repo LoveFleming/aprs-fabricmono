@@ -246,7 +246,7 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                 body: JSON.stringify({
                     prompt: promptText,
                     systemPrompt: sp,
-                    permissionMode: "auto-edit",
+                    permissionMode: "yolo",
                     ...(selectedModel ? { model: selectedModel } : {}),
                 }),
             });
