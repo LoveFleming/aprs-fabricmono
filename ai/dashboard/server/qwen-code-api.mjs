@@ -331,7 +331,7 @@ const wss = new WebSocketServer({ port: WS_PORT });
 const ptySessions = new Map(); // ws -> { pty, id }
 
 // Path to qwen CLI
-const QWEN_BIN = process.env.QWEN_BIN || "qwen";
+const QWEN_BIN = process.env.QWEN_BIN || "/opt/homebrew/bin/qwen";
 
 wss.on("connection", (ws, req) => {
   const sessionId = `pty-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -391,7 +391,7 @@ wss.on("connection", (ws, req) => {
         ws.send(JSON.stringify({ type: "ready", sessionId }));
       } catch (err) {
         console.error(`[PTY] Spawn failed:`, err.message);
-        ws.send(JSON.stringify({ type: "error", message: err.message }));
+        ws.send(JSON.stringify({ type: "error", message: `Failed to start Qwen CLI: ${err.message}. Make sure qwen is installed.` }));
       }
     }
     else if (msg.type === "input") {
