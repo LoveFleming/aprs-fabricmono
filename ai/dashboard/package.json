@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "concurrently -k -n \"UI,QWEN\" -c \"cyan,magenta\" \"vite\" \"node server/qwen-code-api.mjs\"",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "npm rebuild node-pty 2>/dev/null || npm rebuild node-pty"
   },
   "dependencies": {
     "@opencode-ai/sdk": "^1.2.12",

@@ -440,13 +440,17 @@ wss.on("connection", (ws, req) => {
       console.log(`[PTY] Spawning: ${QWEN_BIN} ${args.join(" ")} (cwd: ${cwd || "default"})`);
 
       try {
-        const pty = ptySpawn(QWEN_BIN, args, {
+        const isWin = process.platform === "win32";
+        const ptyOpts = {
           name: "xterm-256color",
           cols: 120,
           rows: 30,
           cwd: cwd || resolve(process.cwd(), "../../"),
           env: { ...process.env },
-        });
+          // Windows ConPTY settings
+          ...(isWin ? { useConpty: true, conptyInheritCursor: true } : {}),
+        };
+        const pty = ptySpawn(QWEN_BIN, args, ptyOpts);
 
         ptySessions.set(ws, { pty, id: sessionId });
 
