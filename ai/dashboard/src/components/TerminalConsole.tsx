@@ -163,16 +163,50 @@ export default function TerminalConsole({
         initialSentRef.current = true;
         const timer = setTimeout(() => {
             if (wsRef.current?.readyState === WebSocket.OPEN) {
-                wsRef.current.send(JSON.stringify({ type: "input", text: initialPrompt + "\n" }));
+                // Type text character by character into the CLI TUI
+            // The CLI uses Ink (React TUI) which needs individual chars + \r for Enter
+            const text = initialPrompt;
+            let i = 0;
+            const typeChar = () => {
+              if (i < text.length && wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({ type: "input", text: text[i] }));
+                i++;
+                setTimeout(typeChar, 50);
+              } else if (i >= text.length) {
+                // Press Enter (\r = carriage return = real Enter key)
+                setTimeout(() => {
+                  if (wsRef.current?.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(JSON.stringify({ type: "input", text: "\r" }));
+                  }
+                }, 100);
+              }
+            };
+            typeChar();
             }
-        }, 2000);
+        }, 5000);
         return () => clearTimeout(timer);
     }, [ready, initialPrompt]);
 
     // Send text to PTY
     const sendInput = (text: string) => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({ type: "input", text: text + "\n" }));
+            // Type char by char for Ink TUI compatibility
+            let i = 0;
+            const typeChar = () => {
+                if (i < text.length && wsRef.current?.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(JSON.stringify({ type: "input", text: text[i] }));
+                    i++;
+                    setTimeout(typeChar, 30);
+                } else if (i >= text.length) {
+                    // Press Enter
+                    setTimeout(() => {
+                        if (wsRef.current?.readyState === WebSocket.OPEN) {
+                            wsRef.current.send(JSON.stringify({ type: "input", text: "\r" }));
+                        }
+                    }, 50);
+                }
+            };
+            typeChar();
         }
     };
 
