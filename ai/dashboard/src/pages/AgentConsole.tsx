@@ -18,10 +18,34 @@ interface AgentConsoleProps {
 export interface ConsoleMessage {
     role: "user" | "assistant" | "system";
     text: string;
+    /** Intermediate thinking/reasoning output from the model */
+    thinking?: string;
     id: string;
 }
 
 const QWEN_API = "http://127.0.0.1:4097";
+
+/** Collapsible block for model thinking/reasoning output */
+function ThinkingBlock({ thinking }: { thinking: string }) {
+    const [expanded, setExpanded] = useState(false);
+    const preview = thinking.length > 80 ? thinking.slice(0, 80) + "..." : thinking;
+    return (
+        <div className="ml-6 border-l-2 border-purple-700/40 pl-3 py-1 my-1">
+            <button
+                onClick={() => setExpanded(v => !v)}
+                className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+            >
+                <span className="text-[10px]">{expanded ? "▼" : "▶"}</span>
+                <span>🧠 Thinking {expanded ? "(hide)" : `— ${preview}`}</span>
+            </button>
+            {expanded && (
+                <pre className="mt-1.5 text-xs text-stone-500 whitespace-pre-wrap font-mono leading-relaxed">
+                    {thinking}
+                </pre>
+            )}
+        </div>
+    );
+}
 
 function buildFullSystemPrompt(basePrompt: string | undefined, employee: Skill | null | undefined): string | undefined {
     if (basePrompt) return basePrompt;
@@ -238,13 +262,17 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
 
                         const data = msg.data;
                         let chunk = "";
+                        let thinkingChunk = "";
                         let replace = false;
+                        let thinkingReplace = false;
 
                         if (msg.type === "stream_event" && data?.event) {
                             const evt = data.event;
                             if (evt.type === "content_block_delta" && evt.delta) {
                                 if (evt.delta.type === "text_delta" && evt.delta.text) {
                                     chunk = evt.delta.text;
+                                } else if (evt.delta.type === "thinking_delta" && evt.delta.thinking) {
+                                    thinkingChunk = evt.delta.thinking;
                                 }
                             }
                         }
@@ -252,6 +280,9 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                             for (const block of data.message.content) {
                                 if (block.type === "text" && block.text) {
                                     chunk += block.text;
+                                } else if (block.type === "thinking" && block.thinking) {
+                                    thinkingChunk += block.thinking;
+                                    thinkingReplace = true;
                                 }
                             }
                             replace = true;
@@ -261,9 +292,13 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                             setIsLoading(false);
                         }
 
-                        if (chunk) {
+                        if (chunk || thinkingChunk) {
                             setMessages(prev => prev.map(m =>
-                                m.id === assistantId ? { ...m, text: replace ? chunk : m.text + chunk } : m
+                                m.id === assistantId ? {
+                                    ...m,
+                                    text: chunk ? (replace ? chunk : m.text + chunk) : m.text,
+                                    thinking: thinkingChunk ? (thinkingReplace ? thinkingChunk : (m.thinking || "") + thinkingChunk) : m.thinking,
+                                } : m
                             ));
                         }
                     } catch {
@@ -362,20 +397,25 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                         </div>
                     )}
                     {messages.map((msg) => (
-                        <div key={msg.id} className="flex gap-2">
-                            <span className={
-                                msg.role === "user"
-                                    ? "text-blue-400 font-bold"
-                                    : msg.role === "system"
-                                        ? "text-zinc-500 font-bold"
-                                        : "text-[#ffbd2e] font-bold"
-                            }>
-                                {msg.role === "user" ? "USER" : msg.role === "system" ? "SYS" : "AGENT"}➜
-                            </span>
-                            {msg.role === "assistant" && msg.text === "" ? (
-                                <span className="animate-pulse text-amber-300">🧠 thinking...</span>
-                            ) : (
-                                <span className="whitespace-pre-wrap">{msg.text}</span>
+                        <div key={msg.id} className="flex gap-2 flex-col">
+                            <div className="flex gap-2">
+                                <span className={
+                                    msg.role === "user"
+                                        ? "text-blue-400 font-bold shrink-0"
+                                        : msg.role === "system"
+                                            ? "text-zinc-500 font-bold shrink-0"
+                                            : "text-[#ffbd2e] font-bold shrink-0"
+                                }>
+                                    {msg.role === "user" ? "USER" : msg.role === "system" ? "SYS" : "AGENT"}➜
+                                </span>
+                                {msg.role === "assistant" && msg.text === "" && !msg.thinking ? (
+                                    <span className="animate-pulse text-amber-300">🧠 thinking...</span>
+                                ) : (
+                                    <span className="whitespace-pre-wrap">{msg.text}</span>
+                                )}
+                            </div>
+                            {msg.role === "assistant" && msg.thinking && (
+                                <ThinkingBlock key={`thinking-${msg.id}`} thinking={msg.thinking} />
                             )}
                         </div>
                     ))}
