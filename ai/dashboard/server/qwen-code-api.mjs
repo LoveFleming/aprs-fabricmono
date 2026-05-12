@@ -308,6 +308,78 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // POST /api/hello-world — Hello World AI Node Demo
+  if (req.method === "POST" && req.url === "/api/hello-world") {
+    const body = await readBody(req);
+    let parsed;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        errorCode: "BIZ_HELLO_WORLD_REQUEST_INVALID",
+        errorType: "VALIDATION",
+        message: "Invalid JSON format"
+      }));
+      return;
+    }
+
+    const { traceId, name, language } = parsed;
+
+    // Validate Input Contract
+    if (!traceId || typeof traceId !== "string" || traceId.length === 0) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        errorCode: "BIZ_HELLO_WORLD_REQUEST_INVALID",
+        errorType: "VALIDATION",
+        message: "traceId is required and must be a non-empty string"
+      }));
+      return;
+    }
+
+    // Process greeting
+    const greetings = {
+      en: "Hello",
+      zh: "你好",
+      ja: "こんにちは",
+      es: "¡Hola",
+    };
+
+    const lang = language || "en";
+    const greeting = greetings[lang] || greetings["en"];
+    const displayName = (name || "World").trim();
+
+    // Build Output Contract response
+    const response = {
+      traceId,
+      greeting,
+      message: `${greeting}, ${displayName}! Welcome to AI Software Factory 🏭`,
+      language: lang,
+      timestamp: new Date().toISOString(),
+      nodeInfo: {
+        nodeId: "hello-world-node",
+        version: "1.0.0",
+        factory: "ai-factory",
+      },
+    };
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(response));
+    return;
+  }
+
+  // GET /api/hello-world — Health check
+  if (req.method === "GET" && req.url === "/api/hello-world") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      status: "healthy",
+      nodeId: "hello-world-node",
+      version: "1.0.0",
+      factory: "ai-factory",
+    }));
+    return;
+  }
+
   res.writeHead(404);
   res.end("Not found");
 });

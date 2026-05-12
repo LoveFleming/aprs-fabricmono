@@ -1,26 +1,19 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 
 interface TerminalConsoleProps {
-    /** Working directory for the Qwen CLI */
     cwd?: string;
-    /** Model to use (passed as -m flag) */
     model?: string;
-    /** Approval mode: default | auto-edit | yolo | plan */
     approvalMode?: string;
-    /** System prompt override */
     systemPrompt?: string;
-    /** Auto-send this prompt after spawn */
     initialPrompt?: string;
-    /** Callback when terminal is ready */
     onReady?: () => void;
-    /** Callback when terminal exits */
     onExit?: (code: number) => void;
 }
 
-const WS_URL = `ws://${window.location.hostname}:4098`;
+const WS_PORT = 4098;
 
 export default function TerminalConsole({
     cwd,
@@ -32,26 +25,24 @@ export default function TerminalConsole({
     onExit,
 }: TerminalConsoleProps) {
     const containerRef = useRef<HTMLDivElement>(null);
-    const termRef = useRef<Terminal | null>(null);
-    const fitAddonRef = useRef<FitAddon | null>(null);
-    const wsRef = useRef<WebSocket | null>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const [input, setInput] = useState("");
     const [connected, setConnected] = useState(false);
     const [ready, setReady] = useState(false);
-    const [sessionKilled, setSessionKilled] = useState(false);
-    const spawnOptionsRef = useRef({ cwd, model, approvalMode, systemPrompt });
-    const initialPromptSentRef = useRef(false);
+    // Stable refs for values used in closures
+    const wsRef = useRef<WebSocket | null>(null);
+    const termRef = useRef<Terminal | null>(null);
+    const fitRef = useRef<FitAddon | null>(null);
+    const initialSentRef = useRef(false);
+    const mountedRef = useRef(true);
 
-    // Keep spawn options in sync
+    // Single useEffect: init terminal + connect WS + spawn PTY
     useEffect(() => {
-        spawnOptionsRef.current = { cwd, model, approvalMode, systemPrompt };
-    }, [cwd, model, approvalMode, systemPrompt]);
+        mountedRef.current = true;
+        const el = containerRef.current;
+        if (!el) return;
 
-    // Initialize xterm.js
-    useEffect(() => {
-        if (!containerRef.current) return;
-
+        // 1. Create terminal
         const term = new Terminal({
             theme: {
                 background: "#1a1a2e",
@@ -85,157 +76,114 @@ export default function TerminalConsole({
             convertEol: true,
         });
 
-        const fitAddon = new FitAddon();
-        term.loadAddon(fitAddon);
-        term.open(containerRef.current);
-
-        // Small delay to let the container size settle
-        setTimeout(() => {
-            try { fitAddon.fit(); } catch { /* ignore */ }
-        }, 100);
+        const fit = new FitAddon();
+        term.loadAddon(fit);
+        term.open(el);
+        setTimeout(() => { try { fit.fit(); } catch { /* */ } }, 50);
 
         termRef.current = term;
-        fitAddonRef.current = fitAddon;
+        fitRef.current = fit;
 
-        return () => {
-            term.dispose();
-            termRef.current = null;
-            fitAddonRef.current = null;
-        };
-    }, []);
+        // Fit on resize
+        const onResize = () => { try { fit.fit(); } catch { /* */ } };
+        window.addEventListener("resize", onResize);
+        const observer = new ResizeObserver(onResize);
+        observer.observe(el);
 
-    // Fit on resize
-    useEffect(() => {
-        const handleResize = () => {
-            if (fitAddonRef.current) {
-                try { fitAddonRef.current.fit(); } catch { /* ignore */ }
-            }
-        };
-        window.addEventListener("resize", handleResize);
-        // Also observe container size changes
-        const observer = new ResizeObserver(handleResize);
-        if (containerRef.current) observer.observe(containerRef.current);
-        return () => {
-            window.removeEventListener("resize", handleResize);
-            observer.disconnect();
-        };
-    }, []);
-
-    // Connect WebSocket and spawn PTY
-    const connect = useCallback(() => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
-        setSessionKilled(false);
-        const ws = new WebSocket(WS_URL);
+        // 2. Connect WebSocket
+        const wsUrl = `ws://${window.location.hostname}:${WS_PORT}`;
+        const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {
+            if (!mountedRef.current) return;
             setConnected(true);
-            // Send spawn command
-            const opts = spawnOptionsRef.current;
+            // Spawn PTY
             ws.send(JSON.stringify({
                 type: "spawn",
                 options: {
-                    cwd: opts.cwd,
-                    model: opts.model || undefined,
-                    approvalMode: opts.approvalMode || "yolo",
-                    systemPrompt: opts.systemPrompt || undefined,
+                    cwd: cwd || undefined,
+                    model: model || undefined,
+                    approvalMode: approvalMode || "yolo",
+                    systemPrompt: systemPrompt || undefined,
                 },
             }));
         };
 
         ws.onmessage = (event) => {
+            if (!mountedRef.current) return;
             let msg;
             try { msg = JSON.parse(event.data as string); } catch { return; }
 
-            if (msg.type === "data" && termRef.current) {
-                termRef.current.write(msg.data);
+            if (msg.type === "data") {
+                term.write(msg.data);
             } else if (msg.type === "ready") {
                 setReady(true);
                 // Resize PTY to match terminal
-                if (fitAddonRef.current && termRef.current) {
-                    const { cols, rows } = termRef.current;
-                    ws.send(JSON.stringify({ type: "resize", cols, rows }));
-                }
+                ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
                 onReady?.();
             } else if (msg.type === "exit") {
                 setReady(false);
                 setConnected(false);
                 onExit?.(msg.exitCode || 0);
             } else if (msg.type === "error") {
-                if (termRef.current) {
-                    termRef.current.write(`\r\n\x1b[31m❌ Error: ${msg.message}\x1b[0m\r\n`);
-                }
+                term.write(`\r\n\x1b[31m❌ Error: ${msg.message}\x1b[0m\r\n`);
             }
         };
 
         ws.onclose = () => {
+            if (!mountedRef.current) return;
             setConnected(false);
             setReady(false);
         };
 
         ws.onerror = () => {
+            if (!mountedRef.current) return;
             setConnected(false);
-            if (termRef.current) {
-                termRef.current.write("\r\n\x1b[31m❌ WebSocket connection failed.\x1b[0m\r\n");
-            }
+            term.write("\r\n\x1b[31m❌ WebSocket connection failed.\x1b[0m\r\n");
         };
-    }, [onReady, onExit]);
 
-    // Connect on mount, disconnect on unmount
-    useEffect(() => {
-        connect();
+        // 3. Cleanup
         return () => {
-            if (wsRef.current) {
-                wsRef.current.close();
-                wsRef.current = null;
-            }
+            mountedRef.current = false;
+            observer.disconnect();
+            window.removeEventListener("resize", onResize);
+            ws.close();
+            wsRef.current = null;
+            term.dispose();
+            termRef.current = null;
+            fitRef.current = null;
         };
-    }, [connect]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Mount once
 
-    // Send resize when terminal size changes
+    // Auto-send initial prompt (separate effect to avoid re-spawning)
     useEffect(() => {
-        if (!ready || !wsRef.current) return;
-        const term = termRef.current;
-        if (!term) return;
-
-        // Send initial resize
-        wsRef.current.send(JSON.stringify({
-            type: "resize",
-            cols: term.cols,
-            rows: term.rows,
-        }));
-    }, [ready]);
-
-    // Auto-send initial prompt
-    useEffect(() => {
-        if (ready && initialPrompt && !initialPromptSentRef.current) {
-            initialPromptSentRef.current = true;
-            // Small delay to let Qwen CLI fully initialize
-            setTimeout(() => {
-                sendInput(initialPrompt);
-            }, 1500);
-        }
+        if (!ready || !initialPrompt || initialSentRef.current) return;
+        initialSentRef.current = true;
+        const timer = setTimeout(() => {
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({ type: "input", text: initialPrompt + "\n" }));
+            }
+        }, 2000);
+        return () => clearTimeout(timer);
     }, [ready, initialPrompt]);
 
     // Send text to PTY
-    const sendInput = useCallback((text: string) => {
-        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-        wsRef.current.send(JSON.stringify({ type: "input", text: text + "\n" }));
-    }, []);
+    const sendInput = (text: string) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: "input", text: text + "\n" }));
+        }
+    };
 
-    // Handle input box submit
     const handleSubmit = () => {
         const text = input.trim();
         if (!text) return;
         sendInput(text);
         setInput("");
-        if (inputRef.current) {
-            inputRef.current.style.height = "auto";
-        }
+        if (inputRef.current) inputRef.current.style.height = "auto";
     };
 
-    // Restart session
     const handleRestart = () => {
         if (wsRef.current) {
             wsRef.current.send(JSON.stringify({ type: "kill" }));
@@ -244,10 +192,45 @@ export default function TerminalConsole({
         }
         if (termRef.current) {
             termRef.current.clear();
-            termRef.current.write("\x1b[33m🔄 Restarting session...\x1b[0m\r\n");
+            termRef.current.write("\x1b[33m🔄 Restarting...\x1b[0m\r\n");
         }
-        initialPromptSentRef.current = false;
-        setTimeout(() => connect(), 500);
+        initialSentRef.current = false;
+        setReady(false);
+        setConnected(false);
+
+        setTimeout(() => {
+            if (!mountedRef.current) return;
+            const wsUrl = `ws://${window.location.hostname}:${WS_PORT}`;
+            const ws = new WebSocket(wsUrl);
+            wsRef.current = ws;
+
+            ws.onopen = () => {
+                setConnected(true);
+                ws.send(JSON.stringify({
+                    type: "spawn",
+                    options: {
+                        cwd: cwd || undefined,
+                        model: model || undefined,
+                        approvalMode: approvalMode || "yolo",
+                        systemPrompt: systemPrompt || undefined,
+                    },
+                }));
+            };
+            ws.onmessage = (event) => {
+                if (!mountedRef.current) return;
+                let msg;
+                try { msg = JSON.parse(event.data as string); } catch { return; }
+                if (msg.type === "data" && termRef.current) termRef.current.write(msg.data);
+                else if (msg.type === "ready") {
+                    setReady(true);
+                    if (termRef.current) ws.send(JSON.stringify({ type: "resize", cols: termRef.current.cols, rows: termRef.current.rows }));
+                }
+                else if (msg.type === "exit") { setReady(false); setConnected(false); }
+                else if (msg.type === "error" && termRef.current) termRef.current.write(`\r\n\x1b[31m❌ ${msg.message}\x1b[0m\r\n`);
+            };
+            ws.onclose = () => { setConnected(false); setReady(false); };
+            ws.onerror = () => { setConnected(false); };
+        }, 500);
     };
 
     return (
@@ -278,11 +261,11 @@ export default function TerminalConsole({
                                 e.currentTarget.style.height = "auto";
                             }
                         }}
-                        disabled={!connected || sessionKilled}
+                        disabled={!connected || !ready}
                         placeholder={
-                            !connected
-                                ? "Connecting to Qwen CLI..."
-                                : "Type your prompt... (Shift+Enter for newline)"
+                            !connected ? "Connecting..." :
+                            !ready ? "Starting Qwen CLI..." :
+                            "Type your prompt... (Shift+Enter for newline)"
                         }
                         className="flex-1 bg-transparent outline-none text-stone-200 text-sm disabled:opacity-50 resize-none min-h-[24px] max-h-[120px] overflow-y-auto leading-normal py-0 placeholder-stone-600"
                         rows={1}
@@ -295,26 +278,20 @@ export default function TerminalConsole({
                         >
                             🔄
                         </button>
-                        {connected && ready ? (
-                            <button
-                                onClick={handleSubmit}
-                                disabled={!input.trim()}
-                                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-stone-800 text-stone-300 border border-stone-600 hover:bg-stone-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                                ▶ Send
-                            </button>
-                        ) : null}
+                        <button
+                            onClick={handleSubmit}
+                            disabled={!connected || !ready || !input.trim()}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-stone-800 text-stone-300 border border-stone-600 hover:bg-stone-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                            ▶ Send
+                        </button>
                     </div>
                 </div>
-                {/* Connection status */}
                 <div className="flex items-center gap-2 mt-1">
-                    <span className={`w-2 h-2 rounded-full ${connected && ready ? "bg-green-500" : connected ? "bg-yellow-500 animate-pulse" : "bg-red-500"}`} />
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${connected && ready ? "bg-green-500" : connected ? "bg-yellow-500 animate-pulse" : "bg-red-500"}`} />
                     <span className="text-[10px] text-stone-500">
-                        {connected && ready
-                            ? `Qwen CLI ready (${approvalMode})`
-                            : connected
-                                ? "Starting Qwen CLI..."
-                                : "Disconnected"}
+                        {connected && ready ? `Qwen CLI ready (${approvalMode})` :
+                         connected ? "Starting Qwen CLI..." : "Disconnected"}
                     </span>
                 </div>
             </div>
