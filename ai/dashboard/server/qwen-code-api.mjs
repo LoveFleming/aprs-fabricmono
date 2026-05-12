@@ -366,36 +366,22 @@ wss.on("connection", (ws, req) => {
 
       try {
         const isWin = process.platform === "win32";
-        let child;
 
-        if (isWin) {
-          // Windows: spawn qwen directly with shell for proper CLI behavior
-          child = cpSpawn(QWEN_BIN, args, {
-            cwd: cwd || resolve(process.cwd(), "../../"),
-            env: {
-              ...process.env,
-              TERM: "xterm-256color",
-              COLORTERM: "truecolor",
-              FORCE_COLOR: "1",
-              ConEmuANSI: "ON",
-            },
-            stdio: ["pipe", "pipe", "pipe"],
-            shell: true,
-          });
-        } else {
-          // macOS/Linux: use 'script' for pseudo-terminal (colors + interactive prompts)
-          child = cpSpawn("script", ["-q", "/dev/null", QWEN_BIN, ...args], {
-            cwd: cwd || resolve(process.cwd(), "../../"),
-            env: {
-              ...process.env,
-              TERM: "xterm-256color",
-              COLORTERM: "truecolor",
-              FORCE_COLOR: "1",
-              NO_COLOR: "",
-            },
-            stdio: ["pipe", "pipe", "pipe"],
-          });
-        }
+        // Spawn qwen directly with color-friendly env vars
+        // No PTY needed — xterm.js handles ANSI escape codes natively
+        const child = cpSpawn(QWEN_BIN, args, {
+          cwd: cwd || resolve(process.cwd(), "../../"),
+          env: {
+            ...process.env,
+            TERM: "xterm-256color",
+            COLORTERM: "truecolor",
+            FORCE_COLOR: "1",
+            // Windows-specific
+            ...(isWin ? { ConEmuANSI: "ON" } : {}),
+          },
+          stdio: ["pipe", "pipe", "pipe"],
+          ...(isWin ? { shell: true } : {}),
+        });
 
         console.log(`[PTY] Spawned on ${isWin ? "Windows" : "macOS/Linux"}`);
 
