@@ -331,8 +331,8 @@ const WS_PORT = parseInt(process.env.QWEN_WS_PORT || "4098", 10);
 const wss = new WebSocketServer({ port: WS_PORT });
 const ptySessions = new Map(); // ws -> { pty, id }
 
-// Path to qwen CLI
-const QWEN_BIN = process.env.QWEN_BIN || "/opt/homebrew/bin/qwen";
+// Path to qwen CLI (auto-detect for Windows)
+const QWEN_BIN = process.env.QWEN_BIN || (process.platform === "win32" ? "qwen.cmd" : "/opt/homebrew/bin/qwen");
 
 wss.on("connection", (ws, req) => {
   const sessionId = `pty-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -365,22 +365,39 @@ wss.on("connection", (ws, req) => {
       console.log(`[PTY] Spawning: ${QWEN_BIN} ${args.join(" ")} (cwd: ${cwd || "default"})`);
 
       try {
-        // Use 'script' command to create a pseudo-terminal for Qwen CLI
-        // This gives us proper TTY behavior (colors, interactive prompts, etc.)
-        const scriptArgs = ["-q", "/dev/null", QWEN_BIN, ...args];
-        console.log(`[PTY] Spawning via script: script ${scriptArgs.join(" ")}`);
+        const isWin = process.platform === "win32";
+        let child;
 
-        const child = cpSpawn("script", scriptArgs, {
-          cwd: cwd || resolve(process.cwd(), "../../"),
-          env: {
-            ...process.env,
-            TERM: "xterm-256color",
-            COLORTERM: "truecolor",
-            FORCE_COLOR: "1",
-            NO_COLOR: "",
-          },
-          stdio: ["pipe", "pipe", "pipe"],
-        });
+        if (isWin) {
+          // Windows: spawn qwen directly with shell for proper CLI behavior
+          child = cpSpawn(QWEN_BIN, args, {
+            cwd: cwd || resolve(process.cwd(), "../../"),
+            env: {
+              ...process.env,
+              TERM: "xterm-256color",
+              COLORTERM: "truecolor",
+              FORCE_COLOR: "1",
+              ConEmuANSI: "ON",
+            },
+            stdio: ["pipe", "pipe", "pipe"],
+            shell: true,
+          });
+        } else {
+          // macOS/Linux: use 'script' for pseudo-terminal (colors + interactive prompts)
+          child = cpSpawn("script", ["-q", "/dev/null", QWEN_BIN, ...args], {
+            cwd: cwd || resolve(process.cwd(), "../../"),
+            env: {
+              ...process.env,
+              TERM: "xterm-256color",
+              COLORTERM: "truecolor",
+              FORCE_COLOR: "1",
+              NO_COLOR: "",
+            },
+            stdio: ["pipe", "pipe", "pipe"],
+          });
+        }
+
+        console.log(`[PTY] Spawned on ${isWin ? "Windows" : "macOS/Linux"}`);
 
         ptySessions.set(ws, { process: child, id: sessionId });
 
