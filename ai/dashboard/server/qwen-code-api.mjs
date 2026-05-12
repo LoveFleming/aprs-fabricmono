@@ -15,7 +15,8 @@ import { join, resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { query, isSDKAssistantMessage, isSDKResultMessage, isSDKPartialAssistantMessage } from "@qwen-code/sdk";
 import { WebSocketServer } from "ws";
-import { spawn as ptySpawn } from "node-pty";
+import { spawn as cpSpawn } from "child_process";
+import { createInterface } from "readline";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -345,7 +346,7 @@ wss.on("connection", (ws, req) => {
     try { msg = JSON.parse(raw.toString()); } catch {
       // If not JSON, treat as raw input to PTY
       const session = ptySessions.get(ws);
-      if (session?.pty) session.pty.write(raw.toString());
+      if (session?.process) session.process.stdin.write(raw.toString());
       return;
     }
 
@@ -364,28 +365,50 @@ wss.on("connection", (ws, req) => {
       console.log(`[PTY] Spawning: ${QWEN_BIN} ${args.join(" ")} (cwd: ${cwd || "default"})`);
 
       try {
-        const pty = ptySpawn(QWEN_BIN, args, {
-          name: "xterm-256color",
-          cols: 120,
-          rows: 30,
+        // Use 'script' command to create a pseudo-terminal for Qwen CLI
+        // This gives us proper TTY behavior (colors, interactive prompts, etc.)
+        const scriptArgs = ["-q", "/dev/null", QWEN_BIN, ...args];
+        console.log(`[PTY] Spawning via script: script ${scriptArgs.join(" ")}`);
+
+        const child = cpSpawn("script", scriptArgs, {
           cwd: cwd || resolve(process.cwd(), "../../"),
-          env: { ...process.env },
+          env: {
+            ...process.env,
+            TERM: "xterm-256color",
+            COLORTERM: "truecolor",
+            FORCE_COLOR: "1",
+            NO_COLOR: "",
+          },
+          stdio: ["pipe", "pipe", "pipe"],
         });
 
-        ptySessions.set(ws, { pty, id: sessionId });
+        ptySessions.set(ws, { process: child, id: sessionId });
 
-        pty.onData((data) => {
+        // Forward stdout to browser
+        child.stdout.on("data", (data) => {
           if (ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: "data", data }));
+            ws.send(JSON.stringify({ type: "data", data: data.toString("utf8") }));
           }
         });
 
-        pty.onExit(({ exitCode }) => {
+        // Forward stderr to browser
+        child.stderr.on("data", (data) => {
+          if (ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: "data", data: data.toString("utf8") }));
+          }
+        });
+
+        child.on("close", (exitCode) => {
           console.log(`[PTY] Exited: ${sessionId} (code: ${exitCode})`);
           if (ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: "exit", exitCode }));
+            ws.send(JSON.stringify({ type: "exit", exitCode: exitCode || 0 }));
           }
           ptySessions.delete(ws);
+        });
+
+        child.on("error", (err) => {
+          console.error(`[PTY] Process error:`, err.message);
+          ws.send(JSON.stringify({ type: "error", message: err.message }));
         });
 
         ws.send(JSON.stringify({ type: "ready", sessionId }));
@@ -397,20 +420,19 @@ wss.on("connection", (ws, req) => {
     else if (msg.type === "input") {
       // Send text to PTY stdin
       const session = ptySessions.get(ws);
-      if (session?.pty) {
-        session.pty.write(msg.text || "");
+      if (session?.process) {
+        session.process.stdin.write(msg.text || "");
       }
     }
     else if (msg.type === "resize") {
       const session = ptySessions.get(ws);
-      if (session?.pty && msg.cols && msg.rows) {
-        session.pty.resize(msg.cols, msg.rows);
-      }
+      // resize not supported for child_process, but that's OK
+      // The CLI will still work fine
     }
     else if (msg.type === "kill") {
       const session = ptySessions.get(ws);
-      if (session?.pty) {
-        session.pty.kill();
+      if (session?.process) {
+        session.process.kill();
         ptySessions.delete(ws);
       }
     }
@@ -418,9 +440,9 @@ wss.on("connection", (ws, req) => {
 
   ws.on("close", () => {
     const session = ptySessions.get(ws);
-    if (session?.pty) {
+    if (session?.process) {
       console.log(`[PTY] Connection closed, killing: ${session.id}`);
-      session.pty.kill();
+      session.process.kill();
       ptySessions.delete(ws);
     }
   });
