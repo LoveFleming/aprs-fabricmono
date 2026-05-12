@@ -53,6 +53,30 @@ function buildFullSystemPrompt(basePrompt: string | undefined, employee: Skill |
     return undefined;
 }
 
+/**
+ * Given the already-accumulated text and a new full-turn string,
+ * return only the suffix that hasn't been accumulated yet.
+ * Handles the case where the SDK re-sends text that was already streamed via deltas.
+ */
+function suffixAfter(accumulated: string, turnText: string): string {
+    if (!turnText) return "";
+    if (!accumulated) return turnText;
+    // If turnText starts with what we already have, return the remainder
+    if (turnText.startsWith(accumulated)) {
+        return turnText.slice(accumulated.length);
+    }
+    // If turnText is a suffix of accumulated, nothing new
+    if (accumulated.endsWith(turnText)) {
+        return "";
+    }
+    // If turnText is entirely contained in accumulated, nothing new
+    if (accumulated.includes(turnText)) {
+        return "";
+    }
+    // Otherwise append the full text (new turn / new content)
+    return turnText;
+}
+
 export default function AgentConsole({ selectedEmployee, systemPrompt, initialMessage, className, disableCard, selectedModel, onLoadConversation, currentConvId, loadedConvMessages, loadedConvId }: AgentConsoleProps) {
     const [messages, setMessages] = useState<ConsoleMessage[]>([]);
     const [input, setInput] = useState("");
@@ -198,6 +222,9 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
         const controller = new AbortController();
         abortControllerRef.current = controller;
 
+        // Track accumulated text in a ref so the stream handler can read current state synchronously
+        const accumulatedRef = { text: "", thinking: "" };
+
         const userMsg: ConsoleMessage = {
             role: "user",
             text: promptText,
@@ -263,8 +290,6 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                         const data = msg.data;
                         let chunk = "";
                         let thinkingChunk = "";
-                        let replace = false;
-                        let thinkingReplace = false;
 
                         if (msg.type === "stream_event" && data?.event) {
                             const evt = data.event;
@@ -277,27 +302,38 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                             }
                         }
                         else if (msg.type === "assistant" && data?.message?.content) {
+                            let turnText = "";
+                            let turnThinking = "";
                             for (const block of data.message.content) {
                                 if (block.type === "text" && block.text) {
-                                    chunk += block.text;
+                                    turnText += block.text;
                                 } else if (block.type === "thinking" && block.thinking) {
-                                    thinkingChunk += block.thinking;
-                                    thinkingReplace = true;
+                                    turnThinking += block.thinking;
                                 }
                             }
-                            replace = true;
+                            // Only append the suffix that isn't already accumulated
+                            if (turnText) {
+                                chunk = suffixAfter(accumulatedRef.text, turnText);
+                            }
+                            if (turnThinking) {
+                                thinkingChunk = suffixAfter(accumulatedRef.thinking, turnThinking);
+                            }
                         }
                         else if (msg.type === "result") {
-                            if (data?.result) { chunk = data.result; replace = true; }
+                            if (data?.result) {
+                                chunk = suffixAfter(accumulatedRef.text, String(data.result));
+                            }
                             setIsLoading(false);
                         }
 
                         if (chunk || thinkingChunk) {
+                            if (chunk) accumulatedRef.text += chunk;
+                            if (thinkingChunk) accumulatedRef.thinking += thinkingChunk;
                             setMessages(prev => prev.map(m =>
                                 m.id === assistantId ? {
                                     ...m,
-                                    text: chunk ? (replace ? chunk : m.text + chunk) : m.text,
-                                    thinking: thinkingChunk ? (thinkingReplace ? thinkingChunk : (m.thinking || "") + thinkingChunk) : m.thinking,
+                                    text: accumulatedRef.text,
+                                    thinking: accumulatedRef.thinking || undefined,
                                 } : m
                             ));
                         }
