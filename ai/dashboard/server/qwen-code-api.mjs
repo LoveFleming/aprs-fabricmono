@@ -14,6 +14,8 @@ import { readdir, readFile, writeFile, mkdir } from "fs/promises";
 import { join, resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { query, isSDKAssistantMessage, isSDKResultMessage, isSDKPartialAssistantMessage } from "@qwen-code/sdk";
+import { WebSocketServer } from "ws";
+import { spawn as ptySpawn } from "node-pty";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -322,3 +324,110 @@ function readBody(req) {
 server.listen(PORT, () => {
   console.log(`[qwen-code-api] Listening on http://127.0.0.1:${PORT}`);
 });
+
+// ── WebSocket server for PTY (Qwen CLI) ──
+const WS_PORT = parseInt(process.env.QWEN_WS_PORT || "4098", 10);
+const wss = new WebSocketServer({ port: WS_PORT });
+const ptySessions = new Map(); // ws -> { pty, id }
+
+// Path to qwen CLI
+const QWEN_BIN = process.env.QWEN_BIN || "qwen";
+
+wss.on("connection", (ws, req) => {
+  const sessionId = `pty-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  console.log(`[PTY] New session: ${sessionId}`);
+
+  // We don't spawn PTY immediately — wait for a "spawn" message
+  // so the client can send options (cwd, model, approvalMode, systemPrompt)
+
+  ws.on("message", (raw) => {
+    let msg;
+    try { msg = JSON.parse(raw.toString()); } catch {
+      // If not JSON, treat as raw input to PTY
+      const session = ptySessions.get(ws);
+      if (session?.pty) session.pty.write(raw.toString());
+      return;
+    }
+
+    if (msg.type === "spawn") {
+      // Clean up previous PTY if any
+      const old = ptySessions.get(ws);
+      if (old?.pty) { old.pty.kill(); }
+
+      const { cwd, model, approvalMode, systemPrompt } = msg.options || {};
+      const args = [];
+      if (model) { args.push("-m", model); }
+      if (approvalMode === "yolo") { args.push("-y"); }
+      else if (approvalMode) { args.push("--approval-mode", approvalMode); }
+      if (systemPrompt) { args.push("--system-prompt", systemPrompt); }
+
+      console.log(`[PTY] Spawning: ${QWEN_BIN} ${args.join(" ")} (cwd: ${cwd || "default"})`);
+
+      try {
+        const pty = ptySpawn(QWEN_BIN, args, {
+          name: "xterm-256color",
+          cols: 120,
+          rows: 30,
+          cwd: cwd || resolve(process.cwd(), "../../"),
+          env: { ...process.env },
+        });
+
+        ptySessions.set(ws, { pty, id: sessionId });
+
+        pty.onData((data) => {
+          if (ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: "data", data }));
+          }
+        });
+
+        pty.onExit(({ exitCode }) => {
+          console.log(`[PTY] Exited: ${sessionId} (code: ${exitCode})`);
+          if (ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: "exit", exitCode }));
+          }
+          ptySessions.delete(ws);
+        });
+
+        ws.send(JSON.stringify({ type: "ready", sessionId }));
+      } catch (err) {
+        console.error(`[PTY] Spawn failed:`, err.message);
+        ws.send(JSON.stringify({ type: "error", message: err.message }));
+      }
+    }
+    else if (msg.type === "input") {
+      // Send text to PTY stdin
+      const session = ptySessions.get(ws);
+      if (session?.pty) {
+        session.pty.write(msg.text || "");
+      }
+    }
+    else if (msg.type === "resize") {
+      const session = ptySessions.get(ws);
+      if (session?.pty && msg.cols && msg.rows) {
+        session.pty.resize(msg.cols, msg.rows);
+      }
+    }
+    else if (msg.type === "kill") {
+      const session = ptySessions.get(ws);
+      if (session?.pty) {
+        session.pty.kill();
+        ptySessions.delete(ws);
+      }
+    }
+  });
+
+  ws.on("close", () => {
+    const session = ptySessions.get(ws);
+    if (session?.pty) {
+      console.log(`[PTY] Connection closed, killing: ${session.id}`);
+      session.pty.kill();
+      ptySessions.delete(ws);
+    }
+  });
+
+  ws.on("error", (err) => {
+    console.error(`[PTY] WebSocket error:`, err.message);
+  });
+});
+
+console.log(`[PTY-WS] WebSocket server listening on ws://127.0.0.1:${WS_PORT}`);

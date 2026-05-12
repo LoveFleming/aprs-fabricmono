@@ -3,6 +3,7 @@ import { Card, cn } from "../components/ui/shared";
 import { SKILLS } from "../data/mockData";
 import { Skill, CrewSkill, RequiredInput, buildSystemPrompt } from "../types";
 import AgentConsole from "./AgentConsole";
+import TerminalConsole from "../components/TerminalConsole";
 
 interface ModelOption {
     id: string;
@@ -519,17 +520,13 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
             {/* Console area */}
             {chatStarted ? (
                 <Card className="flex-1 min-h-0 flex flex-col overflow-hidden p-0 border-0 bg-transparent shadow-none">
-                    <AgentConsole
-                        key={`console-${consoleKey}`}
-                        selectedEmployee={employee}
-                        systemPrompt={systemPrompt}
-                        selectedModel={selectedModel}
-                        permissionMode={permissionMode}
-                        loadedConvMessages={loadedConvMessages}
-                        loadedConvId={loadedConvId}
-                        initialMessage={chatStarted && Object.keys(formData).length > 0 ? buildInitialMessage(allRequiredInputs, formData, selectedSkillIds) : undefined}
-                        className="flex-1 overflow-hidden m-0"
-                        disableCard
+                    <TerminalConsole
+                        key={`terminal-${consoleKey}`}
+                        cwd="/Users/steward/App/aprs-fabricmono"
+                        model={selectedModel || undefined}
+                        approvalMode={permissionMode}
+                        systemPrompt={systemPrompt || undefined}
+                        initialPrompt={chatStarted && Object.keys(formData).length > 0 ? buildInitialMessage(allRequiredInputs, formData, selectedSkillIds) : undefined}
                     />
                 </Card>
             ) : (
