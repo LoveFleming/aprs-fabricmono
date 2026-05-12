@@ -15,8 +15,7 @@ import { join, resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { query, isSDKAssistantMessage, isSDKResultMessage, isSDKPartialAssistantMessage } from "@qwen-code/sdk";
 import { WebSocketServer } from "ws";
-import { spawn as cpSpawn } from "child_process";
-import { createInterface } from "readline";
+import { spawn as ptySpawn } from "node-pty";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -346,7 +345,7 @@ wss.on("connection", (ws, req) => {
     try { msg = JSON.parse(raw.toString()); } catch {
       // If not JSON, treat as raw input to PTY
       const session = ptySessions.get(ws);
-      if (session?.process) session.process.stdin.write(raw.toString());
+      if (session?.pty) session.pty.write(raw.toString());
       return;
     }
 
@@ -365,77 +364,53 @@ wss.on("connection", (ws, req) => {
       console.log(`[PTY] Spawning: ${QWEN_BIN} ${args.join(" ")} (cwd: ${cwd || "default"})`);
 
       try {
-        const isWin = process.platform === "win32";
-
-        // Spawn qwen directly with color-friendly env vars
-        // No PTY needed — xterm.js handles ANSI escape codes natively
-        const child = cpSpawn(QWEN_BIN, args, {
+        const pty = ptySpawn(QWEN_BIN, args, {
+          name: "xterm-256color",
+          cols: 120,
+          rows: 30,
           cwd: cwd || resolve(process.cwd(), "../../"),
-          env: {
-            ...process.env,
-            TERM: "xterm-256color",
-            COLORTERM: "truecolor",
-            FORCE_COLOR: "1",
-            // Windows-specific
-            ...(isWin ? { ConEmuANSI: "ON" } : {}),
-          },
-          stdio: ["pipe", "pipe", "pipe"],
-          ...(isWin ? { shell: true } : {}),
+          env: { ...process.env },
         });
 
-        console.log(`[PTY] Spawned on ${isWin ? "Windows" : "macOS/Linux"}`);
+        ptySessions.set(ws, { pty, id: sessionId });
 
-        ptySessions.set(ws, { process: child, id: sessionId });
-
-        // Forward stdout to browser
-        child.stdout.on("data", (data) => {
+        pty.onData((data) => {
           if (ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: "data", data: data.toString("utf8") }));
+            ws.send(JSON.stringify({ type: "data", data }));
           }
         });
 
-        // Forward stderr to browser
-        child.stderr.on("data", (data) => {
-          if (ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: "data", data: data.toString("utf8") }));
-          }
-        });
-
-        child.on("close", (exitCode) => {
+        pty.onExit(({ exitCode }) => {
           console.log(`[PTY] Exited: ${sessionId} (code: ${exitCode})`);
           if (ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: "exit", exitCode: exitCode || 0 }));
+            ws.send(JSON.stringify({ type: "exit", exitCode }));
           }
           ptySessions.delete(ws);
-        });
-
-        child.on("error", (err) => {
-          console.error(`[PTY] Process error:`, err.message);
-          ws.send(JSON.stringify({ type: "error", message: err.message }));
         });
 
         ws.send(JSON.stringify({ type: "ready", sessionId }));
       } catch (err) {
         console.error(`[PTY] Spawn failed:`, err.message);
-        ws.send(JSON.stringify({ type: "error", message: `Failed to start Qwen CLI: ${err.message}. Make sure qwen is installed.` }));
+        ws.send(JSON.stringify({ type: "error", message: `Failed to start Qwen CLI: ${err.message}` }));
       }
     }
     else if (msg.type === "input") {
       // Send text to PTY stdin
       const session = ptySessions.get(ws);
-      if (session?.process) {
-        session.process.stdin.write(msg.text || "");
+      if (session?.pty) {
+        session.pty.write(msg.text || "");
       }
     }
     else if (msg.type === "resize") {
       const session = ptySessions.get(ws);
-      // resize not supported for child_process, but that's OK
-      // The CLI will still work fine
+      if (session?.pty && msg.cols && msg.rows) {
+        session.pty.resize(msg.cols, msg.rows);
+      }
     }
     else if (msg.type === "kill") {
       const session = ptySessions.get(ws);
-      if (session?.process) {
-        session.process.kill();
+      if (session?.pty) {
+        session.pty.kill();
         ptySessions.delete(ws);
       }
     }
@@ -443,9 +418,9 @@ wss.on("connection", (ws, req) => {
 
   ws.on("close", () => {
     const session = ptySessions.get(ws);
-    if (session?.process) {
+    if (session?.pty) {
       console.log(`[PTY] Connection closed, killing: ${session.id}`);
-      session.process.kill();
+      session.pty.kill();
       ptySessions.delete(ws);
     }
   });
