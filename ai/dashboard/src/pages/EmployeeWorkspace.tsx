@@ -178,6 +178,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
     const [formData, setFormData] = useState<Record<string, string>>({});
     const [models, setModels] = useState<ModelOption[]>([]);
     const [selectedModel, setSelectedModel] = useState<string>("");
+    const [permissionMode, setPermissionMode] = useState<string>("yolo");
     const [conversations, setConversations] = useState<ConvSummary[]>([]);
     const [showConvHistory, setShowConvHistory] = useState(false);
 
@@ -419,6 +420,18 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                                         ))}
                                     </select>
                                 )}
+                                {/* Permission mode selector */}
+                                <select
+                                    value={permissionMode}
+                                    onChange={e => setPermissionMode(e.target.value)}
+                                    className="px-2 py-1.5 rounded-xl border border-orange-200 text-xs text-stone-500 bg-white hover:border-orange-300 transition-all"
+                                    title="Permission Mode"
+                                >
+                                    <option value="default">🔒 Default</option>
+                                    <option value="auto-edit">✏️ Auto-Edit</option>
+                                    <option value="yolo">🚀 YOLO</option>
+                                    <option value="plan">📋 Plan</option>
+                                </select>
                                 <button
                                     onClick={() => setShowPromptModal(true)}
                                     className="px-3 py-2 rounded-xl border border-orange-200 text-xs font-medium text-stone-500 hover:bg-amber-50/50 hover:border-orange-300 transition-all"
@@ -511,6 +524,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                         selectedEmployee={employee}
                         systemPrompt={systemPrompt}
                         selectedModel={selectedModel}
+                        permissionMode={permissionMode}
                         loadedConvMessages={loadedConvMessages}
                         loadedConvId={loadedConvId}
                         initialMessage={chatStarted && Object.keys(formData).length > 0 ? buildInitialMessage(allRequiredInputs, formData, selectedSkillIds) : undefined}

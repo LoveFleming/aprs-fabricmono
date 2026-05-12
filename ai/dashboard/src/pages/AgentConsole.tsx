@@ -9,6 +9,7 @@ interface AgentConsoleProps {
     className?: string;
     disableCard?: boolean;
     selectedModel?: string;
+    permissionMode?: string;
     onLoadConversation?: (convId: string) => void;
     currentConvId?: string;
     loadedConvMessages?: Array<{ role: string; text: string }> | null;
@@ -84,7 +85,7 @@ interface ApprovalRequest {
     toolInput: unknown;
 }
 
-export default function AgentConsole({ selectedEmployee, systemPrompt, initialMessage, className, disableCard, selectedModel, onLoadConversation, currentConvId, loadedConvMessages, loadedConvId }: AgentConsoleProps) {
+export default function AgentConsole({ selectedEmployee, systemPrompt, initialMessage, className, disableCard, selectedModel, permissionMode, onLoadConversation, currentConvId, loadedConvMessages, loadedConvId }: AgentConsoleProps) {
     const [messages, setMessages] = useState<ConsoleMessage[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -256,7 +257,7 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                 body: JSON.stringify({
                     prompt: promptText,
                     systemPrompt: sp,
-                    permissionMode: "default",
+                    ...(permissionMode ? { permissionMode } : {}),
                     ...(selectedModel ? { model: selectedModel } : {}),
                 }),
             });
