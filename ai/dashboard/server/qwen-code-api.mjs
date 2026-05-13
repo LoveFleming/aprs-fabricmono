@@ -16,6 +16,7 @@ import { fileURLToPath } from "url";
 import { query, isSDKAssistantMessage, isSDKResultMessage, isSDKPartialAssistantMessage } from "@qwen-code/sdk";
 import { WebSocketServer } from "ws";
 import { spawn as ptySpawn } from "node-pty";
+import { spawn as cpSpawn } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -445,7 +446,6 @@ wss.on("connection", (ws, req) => {
         if (isWin) {
           // Windows: use child_process.spawn with windowsHide to prevent output leaking
           // ConPTY/winpty both have issues with output leaking to parent console
-          const { spawn: cpSpawn } = await import("child_process");
           const proc = cpSpawn(QWEN_BIN, args, {
             cwd: cwd || resolve(process.cwd(), "../../"),
             env: { ...process.env, TERM: "xterm-256color", FORCE_COLOR: "1" },
