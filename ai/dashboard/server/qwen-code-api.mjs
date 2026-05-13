@@ -521,10 +521,12 @@ wss.on("connection", (ws, req) => {
         let spawnCmd = qwenResolve.cmd;
         let spawnArgs = args;
         if (isWin && qwenResolve.args.length > 0) {
-          // Windows: use 'node' from PATH, pass JS path as plain arg (node-pty handles escaping)
-          spawnCmd = 'node';
-          spawnArgs = [qwenResolve.args[0], ...args.slice(1)];
-          console.log(`[PTY] Windows spawn: node ${spawnArgs[0]}`);
+          // Windows: use process.execPath (node.exe) + local wrapper (no spaces in path)
+          // The wrapper then requires the actual cli.js from "C:\Program Files\..."
+          const wrapperPath = resolve(__dirname, "qwen-wrapper.cjs");
+          spawnCmd = process.execPath;
+          spawnArgs = [wrapperPath, ...args.slice(1)]; // skip the JS entry, wrapper finds it
+          console.log(`[PTY] Windows spawn: ${spawnCmd} ${spawnArgs.join(" ")}`);
         }
 
         const pty = ptySpawn(spawnCmd, spawnArgs, ptyOpts);
