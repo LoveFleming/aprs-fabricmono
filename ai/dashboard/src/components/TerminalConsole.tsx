@@ -160,8 +160,10 @@ export default function TerminalConsole({
                 ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
                 onReady?.();
             } else if (msg.type === "exit") {
+                // CLI exited — keep WS alive, user can click Restart
+                term.write("\r\n\x1b[33m⚠️ Qwen CLI exited. Click 🔄 Restart to start a new session.\x1b[0m\r\n");
                 setReady(false);
-                setConnected(false);
+                // Keep connected=true so terminal stays alive and buttons work
                 onExit?.(msg.exitCode || 0);
             } else if (msg.type === "error") {
                 term.write(`\r\n\x1b[31m❌ Error: ${msg.message}\x1b[0m\r\n`);
@@ -314,7 +316,7 @@ export default function TerminalConsole({
                                     e.currentTarget.style.height = "auto";
                                 }
                             }}
-                            disabled={!connected || !ready}
+                            disabled={!connected}
                             placeholder={
                                 !connected ? "Connecting..." :
                                 !ready ? "Starting Qwen CLI..." :
@@ -326,7 +328,7 @@ export default function TerminalConsole({
                         <div className="flex gap-1.5 shrink-0">
                             <button
                                 onClick={handleSubmit}
-                                disabled={!connected || !ready || !input.trim()}
+                                disabled={!connected || !input.trim()}
                                 className="px-3 py-1.5 rounded-lg text-xs font-bold bg-stone-800 text-stone-300 border border-stone-600 hover:bg-stone-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 ▶ Send
@@ -371,7 +373,7 @@ export default function TerminalConsole({
                                 // Send Ctrl+C to abort current operation
                                 sendToPty("\x03");
                             }}
-                            disabled={!connected || !ready}
+                            disabled={!connected}
                             className="px-2 py-1 rounded text-[10px] font-bold bg-red-900 text-red-300 border border-red-700 hover:bg-red-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             title="Send Ctrl+C to stop current operation"
                         >
