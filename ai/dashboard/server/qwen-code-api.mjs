@@ -521,9 +521,9 @@ wss.on("connection", (ws, req) => {
         let spawnCmd = qwenResolve.cmd;
         let spawnArgs = args;
         if (isWin && qwenResolve.args.length > 0) {
-          // Windows: spawn node directly, quote the JS entry path
+          // Windows: use 'node' from PATH, pass JS path as plain arg (node-pty handles escaping)
           spawnCmd = 'node';
-          spawnArgs = [`"${qwenResolve.args[0]}"`, ...args.slice(1)];
+          spawnArgs = [qwenResolve.args[0], ...args.slice(1)];
           console.log(`[PTY] Windows spawn: node ${spawnArgs[0]}`);
         }
 
