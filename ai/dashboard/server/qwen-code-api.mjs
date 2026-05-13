@@ -441,58 +441,103 @@ wss.on("connection", (ws, req) => {
 
       try {
         const isWin = process.platform === "win32";
-        const ptyOpts = {
-          name: "xterm-256color",
-          cols: 120,
-          rows: 30,
-          cwd: cwd || resolve(process.cwd(), "../../"),
-          env: { ...process.env },
-        };
-        // Windows: explicitly disable ConPTY to use winpty which captures output correctly
-        // ConPTY on Windows can leak output to the parent console instead of the PTY
+
         if (isWin) {
-          ptyOpts.useConpty = false;
+          // Windows: use child_process.spawn with windowsHide to prevent output leaking
+          // ConPTY/winpty both have issues with output leaking to parent console
+          const { spawn: cpSpawn } = await import("child_process");
+          const proc = cpSpawn(QWEN_BIN, args, {
+            cwd: cwd || resolve(process.cwd(), "../../"),
+            env: { ...process.env, TERM: "xterm-256color", FORCE_COLOR: "1" },
+            stdio: ["pipe", "pipe", "pipe"],
+            windowsHide: true,
+            shell: true,
+          });
+
+          ptySessions.set(ws, { proc, id: sessionId, isChildProcess: true });
+
+          proc.stdout.on("data", (data) => {
+            if (ws.readyState === 1) {
+              ws.send(JSON.stringify({ type: "data", data: data.toString("utf8") }));
+            }
+          });
+
+          proc.stderr.on("data", (data) => {
+            if (ws.readyState === 1) {
+              ws.send(JSON.stringify({ type: "data", data: data.toString("utf8") }));
+            }
+          });
+
+          proc.on("close", (code) => {
+            console.log(`[PTY] Exited: ${sessionId} (code: ${code})`);
+            if (ws.readyState === 1) {
+              ws.send(JSON.stringify({ type: "exit", exitCode: code || 0 }));
+            }
+            ptySessions.delete(ws);
+          });
+
+          proc.on("error", (err) => {
+            console.error(`[PTY] Process error:`, err.message);
+            ws.send(JSON.stringify({ type: "error", message: err.message }));
+          });
+
+          ws.send(JSON.stringify({ type: "ready", sessionId }));
+        } else {
+          // macOS/Linux: use node-pty for full TTY support (Ink TUI needs it)
+          const ptyOpts = {
+            name: "xterm-256color",
+            cols: 120,
+            rows: 30,
+            cwd: cwd || resolve(process.cwd(), "../../"),
+            env: { ...process.env },
+          };
+          const pty = ptySpawn(QWEN_BIN, args, ptyOpts);
+
+          ptySessions.set(ws, { pty, id: sessionId });
+
+          pty.onData((data) => {
+            if (ws.readyState === 1) {
+              ws.send(JSON.stringify({ type: "data", data }));
+            }
+          });
+
+          pty.onExit(({ exitCode }) => {
+            console.log(`[PTY] Exited: ${sessionId} (code: ${exitCode})`);
+            if (ws.readyState === 1) {
+              ws.send(JSON.stringify({ type: "exit", exitCode }));
+            }
+            ptySessions.delete(ws);
+          });
+
+          ws.send(JSON.stringify({ type: "ready", sessionId }));
         }
-        const pty = ptySpawn(QWEN_BIN, args, ptyOpts);
-
-        ptySessions.set(ws, { pty, id: sessionId });
-
-        pty.onData((data) => {
-          if (ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: "data", data }));
-          }
-        });
-
-        pty.onExit(({ exitCode }) => {
-          console.log(`[PTY] Exited: ${sessionId} (code: ${exitCode})`);
-          if (ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: "exit", exitCode }));
-          }
-          ptySessions.delete(ws);
-        });
-
-        ws.send(JSON.stringify({ type: "ready", sessionId }));
       } catch (err) {
         console.error(`[PTY] Spawn failed:`, err.message);
         ws.send(JSON.stringify({ type: "error", message: `Failed to start Qwen CLI: ${err.message}` }));
       }
     }
     else if (msg.type === "input") {
-      // Send text to PTY stdin
+      // Send text to PTY stdin or child_process
       const session = ptySessions.get(ws);
-      if (session?.pty) {
+      if (session?.isChildProcess && session.proc) {
+        session.proc.stdin.write(msg.text || "");
+      } else if (session?.pty) {
         session.pty.write(msg.text || "");
       }
     }
     else if (msg.type === "resize") {
       const session = ptySessions.get(ws);
+      // child_process doesn't support resize, only PTY does
       if (session?.pty && msg.cols && msg.rows) {
         session.pty.resize(msg.cols, msg.rows);
       }
     }
     else if (msg.type === "kill") {
       const session = ptySessions.get(ws);
-      if (session?.pty) {
+      if (session?.isChildProcess && session.proc) {
+        session.proc.kill();
+        ptySessions.delete(ws);
+      } else if (session?.pty) {
         session.pty.kill();
         ptySessions.delete(ws);
       }
@@ -501,7 +546,11 @@ wss.on("connection", (ws, req) => {
 
   ws.on("close", () => {
     const session = ptySessions.get(ws);
-    if (session?.pty) {
+    if (session?.isChildProcess && session.proc) {
+      console.log(`[PTY] Connection closed, killing: ${session.id}`);
+      session.proc.kill();
+      ptySessions.delete(ws);
+    } else if (session?.pty) {
       console.log(`[PTY] Connection closed, killing: ${session.id}`);
       session.pty.kill();
       ptySessions.delete(ws);
