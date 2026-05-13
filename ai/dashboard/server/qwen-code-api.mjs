@@ -16,7 +16,6 @@ import { fileURLToPath } from "url";
 import { query, isSDKAssistantMessage, isSDKResultMessage, isSDKPartialAssistantMessage } from "@qwen-code/sdk";
 import { WebSocketServer } from "ws";
 import { spawn as ptySpawn } from "node-pty";
-import { spawn as cpSpawn } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -403,8 +402,28 @@ const WS_PORT = parseInt(process.env.QWEN_WS_PORT || "4098", 10);
 const wss = new WebSocketServer({ port: WS_PORT, host: "0.0.0.0" });
 const ptySessions = new Map(); // ws -> { pty, id }
 
-// Path to qwen CLI (auto-detect for Windows)
-const QWEN_BIN = process.env.QWEN_BIN || (process.platform === "win32" ? "qwen.cmd" : "/opt/homebrew/bin/qwen");
+// Resolve qwen CLI binary
+// Resolve qwen binary at startup
+const qwenResolve = await (async () => {
+  if (process.env.QWEN_BIN) return { cmd: process.env.QWEN_BIN, args: [] };
+  if (process.platform !== "win32") return { cmd: "/opt/homebrew/bin/qwen", args: [] };
+  // Windows: bypass qwen.cmd by spawning node directly with the JS entry
+  const { existsSync } = await import("fs");
+  const nodeExe = process.execPath;
+  const candidates = [
+    join(process.env.APPDATA || "", "npm", "node_modules", "@anthropic-ai", "qwen-code", "dist", "cli.js"),
+    join(process.env.APPDATA || "", "npm", "node_modules", "qwen-code", "dist", "cli.js"),
+    join(dirname(nodeExe), "node_modules", "@anthropic-ai", "qwen-code", "dist", "cli.js"),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) {
+      console.log(`[QWEN] Resolved Windows entry: node ${p}`);
+      return { cmd: nodeExe, args: [p] };
+    }
+  }
+  console.warn(`[QWEN] Could not find qwen JS entry, falling back to qwen.cmd`);
+  return { cmd: "qwen.cmd", args: [] };
+})();
 
 wss.on("connection", (ws, req) => {
   const sessionId = `pty-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -432,13 +451,14 @@ wss.on("connection", (ws, req) => {
       if (old?.pty) { old.pty.kill(); }
 
       const { cwd, model, approvalMode, systemPrompt } = msg.options || {};
-      const args = [];
+      const baseArgs = [...qwenResolve.args];
+      const args = [...baseArgs];
       if (model) { args.push("-m", model); }
       if (approvalMode === "yolo") { args.push("-y"); }
       else if (approvalMode) { args.push("--approval-mode", approvalMode); }
       if (systemPrompt) { args.push("--system-prompt", systemPrompt); }
 
-      console.log(`[PTY] Spawning: ${QWEN_BIN} ${args.join(" ")} (cwd: ${cwd || "default"})`);
+      console.log(`[PTY] Spawning: ${qwenResolve.cmd} ${args.join(" ")} (cwd: ${cwd || "default"})`);
 
       try {
         const isWin = process.platform === "win32";
@@ -450,10 +470,8 @@ wss.on("connection", (ws, req) => {
           rows: 30,
           cwd: cwd || resolve(process.cwd(), "../../"),
           env: { ...process.env },
-          // Hide the ConPTY window on Windows so output doesn't leak to parent console
-          ...(isWin ? { useConpty: true, windowsHide: true } : {}),
         };
-        const pty = ptySpawn(QWEN_BIN, args, ptyOpts);
+        const pty = ptySpawn(qwenResolve.cmd, args, ptyOpts);
 
         ptySessions.set(ws, { pty, id: sessionId });
 
