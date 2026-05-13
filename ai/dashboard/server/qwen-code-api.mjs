@@ -447,9 +447,12 @@ wss.on("connection", (ws, req) => {
           rows: 30,
           cwd: cwd || resolve(process.cwd(), "../../"),
           env: { ...process.env },
-          // Windows ConPTY settings
-          ...(isWin ? { useConpty: true, conptyInheritCursor: true } : {}),
         };
+        // Windows: explicitly disable ConPTY to use winpty which captures output correctly
+        // ConPTY on Windows can leak output to the parent console instead of the PTY
+        if (isWin) {
+          ptyOpts.useConpty = false;
+        }
         const pty = ptySpawn(QWEN_BIN, args, ptyOpts);
 
         ptySessions.set(ws, { pty, id: sessionId });
