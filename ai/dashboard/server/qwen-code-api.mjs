@@ -16,7 +16,6 @@ import { fileURLToPath } from "url";
 import { query, isSDKAssistantMessage, isSDKResultMessage, isSDKPartialAssistantMessage } from "@qwen-code/sdk";
 import { WebSocketServer } from "ws";
 import { spawn as ptySpawn } from "node-pty";
-import { execSync } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -404,72 +403,10 @@ const wss = new WebSocketServer({ port: WS_PORT, host: "0.0.0.0" });
 const ptySessions = new Map(); // ws -> { pty, id }
 
 // Resolve qwen CLI binary
-// Resolve qwen binary at startup
-const qwenResolve = await (async () => {
-  if (process.env.QWEN_BIN) return { cmd: process.env.QWEN_BIN, args: [] };
-  if (process.platform !== "win32") return { cmd: "/opt/homebrew/bin/qwen", args: [] };
-  // Windows: bypass qwen.cmd by spawning node directly with the JS entry
-  const { existsSync, readFileSync } = await import("fs");
-  const nodeExe = process.execPath;
-  const appData = process.env.APPDATA || "";
-  const nodeDir = dirname(nodeExe);
-
-  // Try to parse qwen.cmd to find the actual entry point
-  const cmdCandidates = [
-    join(appData, "npm", "qwen.cmd"),
-    join(nodeDir, "qwen.cmd"),
-  ];
-  for (const cmdPath of cmdCandidates) {
-    if (existsSync(cmdPath)) {
-      try {
-        const content = readFileSync(cmdPath, "utf-8");
-        // Typical npm .cmd content: node "%~dp0\node_modules\@qwen-code\qwen-code\cli.js" %*
-        // or: node "%~dp0\..\..\...\dist\index.js"
-        const match = content.match(/node\s+["']?(%~dp0[\\/][^"'\s]+)["']?/i);
-        if (match) {
-          // Replace %~dp0 with the cmd's directory
-          const cmdDir = dirname(cmdPath);
-          let jsPath = match[1].replace(/%~dp0/i, cmdDir);
-          // Normalize path
-          jsPath = resolve(jsPath);
-          if (existsSync(jsPath)) {
-            console.log(`[QWEN] Parsed from ${cmdPath}: node ${jsPath}`);
-            return { cmd: nodeExe, args: [jsPath] };
-          }
-        }
-        // Try another pattern: "%~dp0\..\.."
-        const match2 = content.match(/node\s+["']?([^"'\s]+\.js)["']?/i);
-        if (match2) {
-          let jsPath = match2[1].replace(/%~dp0/i, dirname(cmdPath));
-          jsPath = resolve(jsPath);
-          if (existsSync(jsPath)) {
-            console.log(`[QWEN] Parsed from ${cmdPath}: node ${jsPath}`);
-            return { cmd: nodeExe, args: [jsPath] };
-          }
-        }
-      } catch (e) {
-        console.warn(`[QWEN] Failed to parse ${cmdPath}:`, e.message);
-      }
-    }
-  }
-
-  // Hardcoded candidates as fallback
-  const candidates = [
-    join(nodeDir, "node_modules", "@qwen-code", "qwen-code", "cli.js"),
-    join(appData, "npm", "node_modules", "@qwen-code", "qwen-code", "dist", "index.js"),
-    join(appData, "npm", "node_modules", "@qwen-code", "qwen-code", "cli.js"),
-    join(appData, "npm", "node_modules", "@anthropic-ai", "qwen-code", "dist", "cli.js"),
-    join(nodeDir, "node_modules", "@anthropic-ai", "qwen-code", "dist", "cli.js"),
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) {
-      console.log(`[QWEN] Resolved Windows entry: node ${p}`);
-      return { cmd: nodeExe, args: [p] };
-    }
-  }
-  console.warn(`[QWEN] Could not find qwen JS entry, falling back to qwen.cmd`);
-  return { cmd: "qwen.cmd", args: [] };
-})();
+// Path to qwen CLI (hardcoded per platform)
+// Windows: "C:\Program Files\nodejs\qwen.cmd" or "%APPDATA%\npm\qwen.cmd"
+// Mac/Linux: /opt/homebrew/bin/qwen
+const QWEN_BIN = process.env.QWEN_BIN || (process.platform === "win32" ? "qwen.cmd" : "/opt/homebrew/bin/qwen");
 
 wss.on("connection", (ws, req) => {
   const sessionId = `pty-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -497,14 +434,13 @@ wss.on("connection", (ws, req) => {
       if (old?.pty) { old.pty.kill(); }
 
       const { cwd, model, approvalMode, systemPrompt } = msg.options || {};
-      const baseArgs = [...qwenResolve.args];
-      const args = [...baseArgs];
+      const args = [];
       if (model) { args.push("-m", model); }
       if (approvalMode === "yolo") { args.push("-y"); }
       else if (approvalMode) { args.push("--approval-mode", approvalMode); }
       if (systemPrompt) { args.push("--system-prompt", systemPrompt); }
 
-      console.log(`[PTY] Spawning: ${qwenResolve.cmd} ${args.join(" ")} (cwd: ${cwd || "default"})`);
+      console.log(`[PTY] Spawning: ${QWEN_BIN} ${args.join(" ")} (cwd: ${cwd || "default"})`);
 
       try {
         const isWin = process.platform === "win32";
@@ -517,19 +453,7 @@ wss.on("connection", (ws, req) => {
           cwd: cwd || resolve(process.cwd(), "../../"),
           env: { ...process.env },
         };
-
-        let spawnCmd = qwenResolve.cmd;
-        let spawnArgs = args;
-        if (isWin && qwenResolve.args.length > 0) {
-          // Windows: use process.execPath (node.exe) + local wrapper (no spaces in path)
-          // The wrapper then requires the actual cli.js from "C:\Program Files\..."
-          const wrapperPath = resolve(__dirname, "qwen-wrapper.cjs");
-          spawnCmd = process.execPath;
-          spawnArgs = [wrapperPath, ...args.slice(1)]; // skip the JS entry, wrapper finds it
-          console.log(`[PTY] Windows spawn: ${spawnCmd} ${spawnArgs.join(" ")}`);
-        }
-
-        const pty = ptySpawn(spawnCmd, spawnArgs, ptyOpts);
+        const pty = ptySpawn(QWEN_BIN, args, ptyOpts);
 
         ptySessions.set(ws, { pty, id: sessionId });
 
