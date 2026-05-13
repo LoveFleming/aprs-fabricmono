@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
@@ -26,75 +26,46 @@ export default function TerminalConsole({
 }: TerminalConsoleProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
-    const termContainerRef = useRef<HTMLDivElement>(null);
     const [input, setInput] = useState("");
     const [connected, setConnected] = useState(false);
     const [ready, setReady] = useState(false);
-    const [directMode, setDirectMode] = useState(true); // default: direct terminal input
+    const [directMode, setDirectMode] = useState(true);
+    // Refs for stable access in closures
     const directModeRef = useRef(true);
-    // Stable refs for values used in closures
     const wsRef = useRef<WebSocket | null>(null);
     const termRef = useRef<Terminal | null>(null);
     const fitRef = useRef<FitAddon | null>(null);
     const initialSentRef = useRef(false);
     const mountedRef = useRef(true);
 
-    // Helper: connect WebSocket + spawn PTY, returns the ws
-    const connectAndSpawn = (term: Terminal, fit: FitAddon): WebSocket => {
-        const wsUrl = `ws://${window.location.hostname}:${WS_PORT}`;
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
+    // Stable options ref so closures always see latest props
+    const optsRef = useRef({ cwd, model, approvalMode, systemPrompt });
+    optsRef.current = { cwd, model, approvalMode, systemPrompt };
 
-        ws.onopen = () => {
-            if (!mountedRef.current) return;
-            setConnected(true);
-            ws.send(JSON.stringify({
-                type: "spawn",
-                options: {
-                    cwd: cwd || undefined,
-                    model: model || undefined,
-                    approvalMode: approvalMode || "yolo",
-                    systemPrompt: systemPrompt || undefined,
-                },
-            }));
-        };
+    // Send a string to PTY via WebSocket
+    const sendToPty = useCallback((text: string) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: "input", text }));
+        }
+    }, []);
 
-        ws.onmessage = (event) => {
-            if (!mountedRef.current) return;
-            let msg;
-            try { msg = JSON.parse(event.data as string); } catch { return; }
-
-            if (msg.type === "data") {
-                term.write(msg.data);
-            } else if (msg.type === "ready") {
-                setReady(true);
-                ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
-                onReady?.();
-            } else if (msg.type === "exit") {
-                setReady(false);
-                setConnected(false);
-                onExit?.(msg.exitCode || 0);
-            } else if (msg.type === "error") {
-                term.write(`\r\n\x1b[31m❌ Error: ${msg.message}\x1b[0m\r\n`);
+    // Send text char-by-char then Enter (for textarea mode)
+    const sendInput = useCallback((text: string) => {
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+        let i = 0;
+        const typeChar = () => {
+            if (i < text.length && wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({ type: "input", text: text[i] }));
+                i++;
+                setTimeout(typeChar, 30);
+            } else if (i >= text.length) {
+                setTimeout(() => sendToPty("\r"), 50);
             }
         };
+        typeChar();
+    }, [sendToPty]);
 
-        ws.onclose = () => {
-            if (!mountedRef.current) return;
-            setConnected(false);
-            setReady(false);
-        };
-
-        ws.onerror = () => {
-            if (!mountedRef.current) return;
-            setConnected(false);
-            term.write("\r\n\x1b[31m❌ WebSocket connection failed.\x1b[0m\r\n");
-        };
-
-        return ws;
-    };
-
-    // Single useEffect: init terminal + connect WS + spawn PTY
+    // Init terminal + WS + PTY (once on mount)
     useEffect(() => {
         mountedRef.current = true;
         const el = containerRef.current;
@@ -142,10 +113,11 @@ export default function TerminalConsole({
         termRef.current = term;
         fitRef.current = fit;
 
-        // Direct keyboard input: xterm → PTY (arrow keys, Tab, interactive menus all work)
-        term.onData((data) => {
-            if (directModeRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
-                wsRef.current.send(JSON.stringify({ type: "input", text: data }));
+        // 2. Direct keyboard input: every keystroke in xterm → PTY
+        // This enables arrow keys, Tab, interactive menus, etc.
+        const dataDisposable = term.onData((data) => {
+            if (directModeRef.current) {
+                sendToPty(data);
             }
         });
 
@@ -155,15 +127,66 @@ export default function TerminalConsole({
         const observer = new ResizeObserver(onResize);
         observer.observe(el);
 
-        // 2. Connect WebSocket
-        connectAndSpawn(term, fit);
+        // 3. Connect WebSocket
+        const wsUrl = `ws://${window.location.hostname}:${WS_PORT}`;
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
 
-        // 3. Cleanup
+        ws.onopen = () => {
+            if (!mountedRef.current) return;
+            setConnected(true);
+            // Spawn PTY with current options
+            const opts = optsRef.current;
+            ws.send(JSON.stringify({
+                type: "spawn",
+                options: {
+                    cwd: opts.cwd || undefined,
+                    model: opts.model || undefined,
+                    approvalMode: opts.approvalMode || "yolo",
+                    systemPrompt: opts.systemPrompt || undefined,
+                },
+            }));
+        };
+
+        ws.onmessage = (event) => {
+            if (!mountedRef.current) return;
+            let msg;
+            try { msg = JSON.parse(event.data as string); } catch { return; }
+
+            if (msg.type === "data") {
+                term.write(msg.data);
+            } else if (msg.type === "ready") {
+                setReady(true);
+                ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
+                onReady?.();
+            } else if (msg.type === "exit") {
+                setReady(false);
+                setConnected(false);
+                onExit?.(msg.exitCode || 0);
+            } else if (msg.type === "error") {
+                term.write(`\r\n\x1b[31m❌ Error: ${msg.message}\x1b[0m\r\n`);
+            }
+        };
+
+        ws.onclose = () => {
+            if (!mountedRef.current) return;
+            setConnected(false);
+            setReady(false);
+        };
+
+        ws.onerror = () => {
+            if (!mountedRef.current) return;
+            setConnected(false);
+            term.write("\r\n\x1b[31m❌ WebSocket connection failed.\x1b[0m\r\n");
+        };
+
+        // 4. Cleanup
         return () => {
             mountedRef.current = false;
+            dataDisposable.dispose();
             observer.disconnect();
             window.removeEventListener("resize", onResize);
-            wsRef.current?.close();
+            ws.close();
             wsRef.current = null;
             term.dispose();
             termRef.current = null;
@@ -172,53 +195,15 @@ export default function TerminalConsole({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Mount once
 
-    // Auto-send initial prompt (separate effect to avoid re-spawning)
+    // Auto-send initial prompt when ready
     useEffect(() => {
         if (!ready || !initialPrompt || initialSentRef.current) return;
         initialSentRef.current = true;
         const timer = setTimeout(() => {
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
-                const text = initialPrompt;
-                let i = 0;
-                const typeChar = () => {
-                    if (i < text.length && wsRef.current?.readyState === WebSocket.OPEN) {
-                        wsRef.current.send(JSON.stringify({ type: "input", text: text[i] }));
-                        i++;
-                        setTimeout(typeChar, 50);
-                    } else if (i >= text.length) {
-                        setTimeout(() => {
-                            if (wsRef.current?.readyState === WebSocket.OPEN) {
-                                wsRef.current.send(JSON.stringify({ type: "input", text: "\r" }));
-                            }
-                        }, 100);
-                    }
-                };
-                typeChar();
-            }
+            sendInput(initialPrompt);
         }, 5000);
         return () => clearTimeout(timer);
-    }, [ready, initialPrompt]);
-
-    // Send text to PTY (for textarea mode)
-    const sendInput = (text: string) => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-            let i = 0;
-            const typeChar = () => {
-                if (i < text.length && wsRef.current?.readyState === WebSocket.OPEN) {
-                    wsRef.current.send(JSON.stringify({ type: "input", text: text[i] }));
-                    i++;
-                    setTimeout(typeChar, 30);
-                } else if (i >= text.length) {
-                    setTimeout(() => {
-                        if (wsRef.current?.readyState === WebSocket.OPEN) {
-                            wsRef.current.send(JSON.stringify({ type: "input", text: "\r" }));
-                        }
-                    }, 50);
-                }
-            };
-            typeChar();
-        }
-    };
+    }, [ready, initialPrompt, sendInput]);
 
     const handleSubmit = () => {
         const text = input.trim();
@@ -229,6 +214,7 @@ export default function TerminalConsole({
     };
 
     const handleRestart = () => {
+        // Kill current PTY
         if (wsRef.current) {
             wsRef.current.send(JSON.stringify({ type: "kill" }));
             wsRef.current.close();
@@ -242,11 +228,44 @@ export default function TerminalConsole({
         setReady(false);
         setConnected(false);
 
+        // Reconnect after short delay
         setTimeout(() => {
             if (!mountedRef.current) return;
-            if (termRef.current && fitRef.current) {
-                connectAndSpawn(termRef.current, fitRef.current);
-            }
+            const term = termRef.current;
+            if (!term) return;
+
+            const wsUrl = `ws://${window.location.hostname}:${WS_PORT}`;
+            const ws = new WebSocket(wsUrl);
+            wsRef.current = ws;
+
+            ws.onopen = () => {
+                setConnected(true);
+                const opts = optsRef.current;
+                ws.send(JSON.stringify({
+                    type: "spawn",
+                    options: {
+                        cwd: opts.cwd || undefined,
+                        model: opts.model || undefined,
+                        approvalMode: opts.approvalMode || "yolo",
+                        systemPrompt: opts.systemPrompt || undefined,
+                    },
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                if (!mountedRef.current) return;
+                let msg;
+                try { msg = JSON.parse(event.data as string); } catch { return; }
+                if (msg.type === "data" && termRef.current) termRef.current.write(msg.data);
+                else if (msg.type === "ready") {
+                    setReady(true);
+                    if (termRef.current) ws.send(JSON.stringify({ type: "resize", cols: termRef.current.cols, rows: termRef.current.rows }));
+                }
+                else if (msg.type === "exit") { setReady(false); setConnected(false); }
+                else if (msg.type === "error" && termRef.current) termRef.current.write(`\r\n\x1b[31m❌ ${msg.message}\x1b[0m\r\n`);
+            };
+            ws.onclose = () => { setConnected(false); setReady(false); };
+            ws.onerror = () => { setConnected(false); };
         }, 500);
     };
 
@@ -254,11 +273,9 @@ export default function TerminalConsole({
         const newMode = !directMode;
         directModeRef.current = newMode;
         setDirectMode(newMode);
-        // Focus terminal when switching to direct mode
         if (newMode && termRef.current) {
             termRef.current.focus();
         }
-        // Focus textarea when switching to textarea mode
         if (!newMode && inputRef.current) {
             inputRef.current.focus();
         }
@@ -269,11 +286,10 @@ export default function TerminalConsole({
             {/* Terminal display */}
             <div
                 ref={containerRef}
-                className={`flex-1 min-h-0 bg-[#1a1a2e] ${directMode ? "rounded-t-lg" : "rounded-t-lg"} overflow-hidden`}
+                className="flex-1 min-h-0 bg-[#1a1a2e] rounded-t-lg overflow-hidden"
                 style={{ padding: "4px 4px 0 4px" }}
                 onClick={() => {
-                    // Click on terminal focuses it in direct mode
-                    if (directMode && termRef.current) termRef.current.focus();
+                    if (termRef.current) termRef.current.focus();
                 }}
             />
 
@@ -322,10 +338,11 @@ export default function TerminalConsole({
                     <div className="flex items-center gap-2">
                         <span className="text-green-400 text-sm">⌨️</span>
                         <span className="text-stone-500 text-xs">
-                            Direct terminal mode — click terminal and type directly. Arrow keys, Tab, and interactive menus work.
+                            Click here and type directly — arrow keys, Tab, and interactive menus work.
                         </span>
                     </div>
                 )}
+                {/* Bottom bar: status + buttons */}
                 <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full shrink-0 ${connected && ready ? "bg-green-500" : connected ? "bg-yellow-500 animate-pulse" : "bg-red-500"}`} />
@@ -345,9 +362,20 @@ export default function TerminalConsole({
                         <button
                             onClick={handleRestart}
                             className="px-2 py-1 rounded text-[10px] font-bold bg-stone-800 text-stone-400 border border-stone-600 hover:bg-stone-700 hover:text-stone-200 transition-colors"
-                            title="Restart session"
+                            title="Kill and restart session"
                         >
-                            🔄
+                            🔄 Restart
+                        </button>
+                        <button
+                            onClick={() => {
+                                // Send Ctrl+C to abort current operation
+                                sendToPty("\x03");
+                            }}
+                            disabled={!connected || !ready}
+                            className="px-2 py-1 rounded text-[10px] font-bold bg-red-900 text-red-300 border border-red-700 hover:bg-red-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Send Ctrl+C to stop current operation"
+                        >
+                            ⏹ Stop
                         </button>
                     </div>
                 </div>
