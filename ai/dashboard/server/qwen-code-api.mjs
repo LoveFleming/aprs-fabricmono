@@ -517,14 +517,21 @@ wss.on("connection", (ws, req) => {
           env: { ...process.env },
         };
 
-        // Windows: use cmd.exe /c to handle paths with spaces properly
+        // Windows: resolve short (8.3) path to avoid spaces in node.exe / JS entry path
+        // This avoids needing cmd.exe /c wrapper which breaks --system-prompt with spaces
         let spawnCmd = qwenResolve.cmd;
         let spawnArgs = args;
         if (isWin && qwenResolve.args.length > 0) {
-          // Wrap: cmd /c "node "path with spaces" arg1 arg2"
-          const fullCmd = `"${qwenResolve.cmd}" ${args.map(a => a.includes(' ') ? `"${a}"` : a).join(' ')}`;
-          spawnCmd = 'cmd.exe';
-          spawnArgs = ['/c', fullCmd];
+          try {
+            const { execSync } = await import('child_process');
+            const shortNode = execSync(`cmd /c for %I in ("${qwenResolve.cmd}") do @echo %~sI`, { encoding: 'utf8' }).trim();
+            const shortJs = execSync(`cmd /c for %I in ("${qwenResolve.args[0]}") do @echo %~sI`, { encoding: 'utf8' }).trim();
+            spawnCmd = shortNode;
+            spawnArgs = [shortJs, ...args.slice(1)];
+            console.log(`[PTY] Short paths: ${spawnCmd} ${spawnArgs[0]}`);
+          } catch (e) {
+            console.warn(`[PTY] Short path failed, using original paths:`, e.message);
+          }
         }
 
         const pty = ptySpawn(spawnCmd, spawnArgs, ptyOpts);
