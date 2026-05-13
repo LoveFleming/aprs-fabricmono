@@ -16,6 +16,7 @@ import { fileURLToPath } from "url";
 import { query, isSDKAssistantMessage, isSDKResultMessage, isSDKPartialAssistantMessage } from "@qwen-code/sdk";
 import { WebSocketServer } from "ws";
 import { spawn as ptySpawn } from "node-pty";
+import { execSync } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -523,7 +524,6 @@ wss.on("connection", (ws, req) => {
         let spawnArgs = args;
         if (isWin && qwenResolve.args.length > 0) {
           try {
-            const { execSync } = await import('child_process');
             const shortNode = execSync(`cmd /c for %I in ("${qwenResolve.cmd}") do @echo %~sI`, { encoding: 'utf8' }).trim();
             const shortJs = execSync(`cmd /c for %I in ("${qwenResolve.args[0]}") do @echo %~sI`, { encoding: 'utf8' }).trim();
             spawnCmd = shortNode;
