@@ -31,6 +31,7 @@ export default function TerminalConsole({
     const [connected, setConnected] = useState(false);
     const [ready, setReady] = useState(false);
     const [directMode, setDirectMode] = useState(true); // default: direct terminal input
+    const directModeRef = useRef(true);
     // Stable refs for values used in closures
     const wsRef = useRef<WebSocket | null>(null);
     const termRef = useRef<Terminal | null>(null);
@@ -143,7 +144,7 @@ export default function TerminalConsole({
 
         // Direct keyboard input: xterm → PTY (arrow keys, Tab, interactive menus all work)
         term.onData((data) => {
-            if (directMode && wsRef.current?.readyState === WebSocket.OPEN) {
+            if (directModeRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
                 wsRef.current.send(JSON.stringify({ type: "input", text: data }));
             }
         });
@@ -251,6 +252,7 @@ export default function TerminalConsole({
 
     const toggleMode = () => {
         const newMode = !directMode;
+        directModeRef.current = newMode;
         setDirectMode(newMode);
         // Focus terminal when switching to direct mode
         if (newMode && termRef.current) {
