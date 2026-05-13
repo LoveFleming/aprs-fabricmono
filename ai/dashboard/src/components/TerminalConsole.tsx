@@ -361,23 +361,31 @@ export default function TerminalConsole({
                         >
                             {directMode ? "📝 Textarea" : "⌨️ Direct"}
                         </button>
+                        {/* Stop: interrupt current LLM response (Ctrl+C) */}
+                        <button
+                            onClick={() => sendToPty("\x03")}
+                            disabled={!connected || !ready}
+                            className="px-2 py-1 rounded text-[10px] font-bold bg-red-900 text-red-300 border border-red-700 hover:bg-red-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Stop current response (Ctrl+C)"
+                        >
+                            ⏹ Stop
+                        </button>
+                        {/* Resume: send 'continue' to resume the conversation */}
+                        <button
+                            onClick={() => sendInput("continue")}
+                            disabled={!connected || !ready}
+                            className="px-2 py-1 rounded text-[10px] font-bold bg-green-900 text-green-300 border border-green-700 hover:bg-green-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Resume conversation"
+                        >
+                            ▶ Resume
+                        </button>
+                        {/* Restart: kill PTY and start fresh */}
                         <button
                             onClick={handleRestart}
                             className="px-2 py-1 rounded text-[10px] font-bold bg-stone-800 text-stone-400 border border-stone-600 hover:bg-stone-700 hover:text-stone-200 transition-colors"
                             title="Kill and restart session"
                         >
                             🔄 Restart
-                        </button>
-                        <button
-                            onClick={() => {
-                                // Send Ctrl+C to abort current operation
-                                sendToPty("\x03");
-                            }}
-                            disabled={!connected}
-                            className="px-2 py-1 rounded text-[10px] font-bold bg-red-900 text-red-300 border border-red-700 hover:bg-red-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            title="Send Ctrl+C to stop current operation"
-                        >
-                            ⏹ Stop
                         </button>
                     </div>
                 </div>
