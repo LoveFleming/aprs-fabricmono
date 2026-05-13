@@ -1,4 +1,6 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Terminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 
 interface TerminalConsoleProps {
@@ -11,7 +13,7 @@ interface TerminalConsoleProps {
     onExit?: (code: number) => void;
 }
 
-const API_PORT = 4097;
+const WS_PORT = 4098;
 
 export default function TerminalConsole({
     cwd,
@@ -22,304 +24,360 @@ export default function TerminalConsole({
     onReady,
     onExit,
 }: TerminalConsoleProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
-    const outputRef = useRef<HTMLPreElement>(null);
     const [input, setInput] = useState("");
-    const [output, setOutput] = useState("Welcome to AI Factory Console. Type your prompt below.\n");
-    const [loading, setLoading] = useState(false);
     const [connected, setConnected] = useState(false);
-    const abortRef = useRef<AbortController | null>(null);
+    const [ready, setReady] = useState(false);
+    const [directMode, setDirectMode] = useState(true);
+    // Refs for stable access in closures
+    const directModeRef = useRef(true);
+    const wsRef = useRef<WebSocket | null>(null);
+    const termRef = useRef<Terminal | null>(null);
+    const fitRef = useRef<FitAddon | null>(null);
+    const initialSentRef = useRef(false);
     const mountedRef = useRef(true);
 
-    // Check API connectivity on mount
-    useEffect(() => {
-        mountedRef.current = true;
-        const check = async () => {
-            try {
-                const res = await fetch(`http://${window.location.hostname}:${API_PORT}/api/models`);
-                if (res.ok) {
-                    setConnected(true);
-                    onReady?.();
-                }
-            } catch {
-                setConnected(false);
-                appendOutput("\n⚠️ Cannot connect to Qwen API server on port " + API_PORT + ". Make sure the server is running.\n");
-            }
-        };
-        check();
-        return () => { mountedRef.current = false; };
+    // Stable options ref so closures always see latest props
+    const optsRef = useRef({ cwd, model, approvalMode, systemPrompt });
+    optsRef.current = { cwd, model, approvalMode, systemPrompt };
+
+    // Send a string to PTY via WebSocket
+    const sendToPty = useCallback((text: string) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: "input", text }));
+        }
     }, []);
 
-    // Auto-scroll output
+    // Send text char-by-char then Enter (for textarea mode)
+    const sendInput = useCallback((text: string) => {
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+        let i = 0;
+        const typeChar = () => {
+            if (i < text.length && wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({ type: "input", text: text[i] }));
+                i++;
+                setTimeout(typeChar, 30);
+            } else if (i >= text.length) {
+                setTimeout(() => sendToPty("\r"), 50);
+            }
+        };
+        typeChar();
+    }, [sendToPty]);
+
+    // Init terminal + WS + PTY (once on mount)
     useEffect(() => {
-        if (outputRef.current) {
-            outputRef.current.scrollTop = outputRef.current.scrollHeight;
-        }
-    }, [output]);
+        mountedRef.current = true;
+        const el = containerRef.current;
+        if (!el) return;
 
-    const appendOutput = (text: string) => {
-        setOutput(prev => prev + text);
-    };
+        // 1. Create terminal
+        const term = new Terminal({
+            theme: {
+                background: "#1a1a2e",
+                foreground: "#e0e0e0",
+                cursor: "#ffbd2e",
+                cursorAccent: "#1a1a2e",
+                selectionBackground: "#444466",
+                black: "#1a1a2e",
+                red: "#ff6b6b",
+                green: "#51cf66",
+                yellow: "#ffbd2e",
+                blue: "#5c9eff",
+                magenta: "#cc78fa",
+                cyan: "#56d4dd",
+                white: "#e0e0e0",
+                brightBlack: "#666680",
+                brightRed: "#ff8787",
+                brightGreen: "#69db7c",
+                brightYellow: "#ffd43b",
+                brightBlue: "#74b0ff",
+                brightMagenta: "#d49bfa",
+                brightCyan: "#66e0e8",
+                brightWhite: "#ffffff",
+            },
+            fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Monaco, monospace",
+            fontSize: 13,
+            lineHeight: 1.2,
+            cursorBlink: true,
+            cursorStyle: "bar",
+            scrollback: 10000,
+            convertEol: true,
+        });
 
-    // Send query to Qwen API
-    const sendQuery = useCallback(async (prompt: string) => {
-        if (!prompt.trim() || !mountedRef.current) return;
+        const fit = new FitAddon();
+        term.loadAddon(fit);
+        term.open(el);
+        setTimeout(() => { try { fit.fit(); } catch { /* */ } }, 50);
 
-        const trimmed = prompt.trim();
-        appendOutput(`\n\x1b[32m➜\x1b[0m ${trimmed}\n`);
+        termRef.current = term;
+        fitRef.current = fit;
+
+        // 2. Direct keyboard input: every keystroke in xterm → PTY
+        // This enables arrow keys, Tab, interactive menus, etc.
+        const dataDisposable = term.onData((data) => {
+            if (directModeRef.current) {
+                sendToPty(data);
+            }
+        });
+
+        // Fit on resize
+        const onResize = () => { try { fit.fit(); } catch { /* */ } };
+        window.addEventListener("resize", onResize);
+        const observer = new ResizeObserver(onResize);
+        observer.observe(el);
+
+        // 3. Connect WebSocket
+        const wsUrl = `ws://${window.location.hostname}:${WS_PORT}`;
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+            if (!mountedRef.current) return;
+            setConnected(true);
+            // Spawn PTY with current options
+            const opts = optsRef.current;
+            ws.send(JSON.stringify({
+                type: "spawn",
+                options: {
+                    cwd: opts.cwd || undefined,
+                    model: opts.model || undefined,
+                    approvalMode: opts.approvalMode || "yolo",
+                    systemPrompt: opts.systemPrompt || undefined,
+                },
+            }));
+        };
+
+        ws.onmessage = (event) => {
+            if (!mountedRef.current) return;
+            let msg;
+            try { msg = JSON.parse(event.data as string); } catch { return; }
+
+            if (msg.type === "data") {
+                term.write(msg.data);
+            } else if (msg.type === "ready") {
+                setReady(true);
+                ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
+                onReady?.();
+            } else if (msg.type === "exit") {
+                // CLI exited — keep WS alive, user can click Restart
+                term.write("\r\n\x1b[33m⚠️ Qwen CLI exited. Click 🔄 Restart to start a new session.\x1b[0m\r\n");
+                setReady(false);
+                // Keep connected=true so terminal stays alive and buttons work
+                onExit?.(msg.exitCode || 0);
+            } else if (msg.type === "error") {
+                term.write(`\r\n\x1b[31m❌ Error: ${msg.message}\x1b[0m\r\n`);
+            }
+        };
+
+        ws.onclose = () => {
+            if (!mountedRef.current) return;
+            setConnected(false);
+            setReady(false);
+        };
+
+        ws.onerror = () => {
+            if (!mountedRef.current) return;
+            setConnected(false);
+            term.write("\r\n\x1b[31m❌ WebSocket connection failed.\x1b[0m\r\n");
+        };
+
+        // 4. Cleanup
+        return () => {
+            mountedRef.current = false;
+            dataDisposable.dispose();
+            observer.disconnect();
+            window.removeEventListener("resize", onResize);
+            ws.close();
+            wsRef.current = null;
+            term.dispose();
+            termRef.current = null;
+            fitRef.current = null;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Mount once
+
+    // Auto-send initial prompt when ready
+    useEffect(() => {
+        if (!ready || !initialPrompt || initialSentRef.current) return;
+        initialSentRef.current = true;
+        const timer = setTimeout(() => {
+            sendInput(initialPrompt);
+        }, 5000);
+        return () => clearTimeout(timer);
+    }, [ready, initialPrompt, sendInput]);
+
+    const handleSubmit = () => {
+        const text = input.trim();
+        if (!text) return;
+        sendInput(text);
         setInput("");
         if (inputRef.current) inputRef.current.style.height = "auto";
-        setLoading(true);
+    };
 
-        const ac = new AbortController();
-        abortRef.current = ac;
+    const handleRestart = () => {
+        // Kill current PTY
+        if (wsRef.current) {
+            wsRef.current.send(JSON.stringify({ type: "kill" }));
+            wsRef.current.close();
+            wsRef.current = null;
+        }
+        if (termRef.current) {
+            termRef.current.clear();
+            termRef.current.write("\x1b[33m🔄 Restarting...\x1b[0m\r\n");
+        }
+        initialSentRef.current = false;
+        setReady(false);
+        setConnected(false);
 
-        try {
-            const res = await fetch(`http://${window.location.hostname}:${API_PORT}/api/query`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    prompt: trimmed,
-                    cwd: cwd || undefined,
-                    permissionMode: approvalMode === "yolo" ? "auto" : "default",
-                    systemPrompt: systemPrompt || undefined,
-                    model: model || undefined,
-                }),
-                signal: ac.signal,
-            });
+        // Reconnect after short delay
+        setTimeout(() => {
+            if (!mountedRef.current) return;
+            const term = termRef.current;
+            if (!term) return;
 
-            if (!res.ok || !res.body) {
-                appendOutput(`\n❌ API error: ${res.status} ${res.statusText}\n`);
-                setLoading(false);
-                return;
-            }
+            const wsUrl = `ws://${window.location.hostname}:${WS_PORT}`;
+            const ws = new WebSocket(wsUrl);
+            wsRef.current = ws;
 
-            // Stream NDJSON response
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = "";
+            ws.onopen = () => {
+                setConnected(true);
+                const opts = optsRef.current;
+                ws.send(JSON.stringify({
+                    type: "spawn",
+                    options: {
+                        cwd: opts.cwd || undefined,
+                        model: opts.model || undefined,
+                        approvalMode: opts.approvalMode || "yolo",
+                        systemPrompt: opts.systemPrompt || undefined,
+                    },
+                }));
+            };
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                if (!mountedRef.current) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split("\n");
-                buffer = lines.pop() || ""; // keep incomplete line
-
-                for (const line of lines) {
-                    if (!line.trim()) continue;
-                    try {
-                        const msg = JSON.parse(line);
-                        handleMessage(msg);
-                    } catch {
-                        // skip malformed JSON
-                    }
+            ws.onmessage = (event) => {
+                if (!mountedRef.current) return;
+                let msg;
+                try { msg = JSON.parse(event.data as string); } catch { return; }
+                if (msg.type === "data" && termRef.current) termRef.current.write(msg.data);
+                else if (msg.type === "ready") {
+                    setReady(true);
+                    if (termRef.current) ws.send(JSON.stringify({ type: "resize", cols: termRef.current.cols, rows: termRef.current.rows }));
                 }
-            }
-            // Process remaining buffer
-            if (buffer.trim()) {
-                try {
-                    handleMessage(JSON.parse(buffer));
-                } catch { /* skip */ }
-            }
-        } catch (err: any) {
-            if (err.name === "AbortError") {
-                appendOutput("\n\x1b[33m⏹ Stopped.\x1b[0m\n");
-            } else {
-                appendOutput(`\n❌ Error: ${err.message}\n`);
-            }
-        } finally {
-            setLoading(false);
-            abortRef.current = null;
-        }
-    }, [cwd, model, approvalMode, systemPrompt]);
-
-    // Handle streamed messages from Qwen SDK
-    const handleMessage = (msg: any) => {
-        if (!mountedRef.current) return;
-
-        const data = msg.data || msg;
-
-        switch (msg.type) {
-            case "assistant":
-            case "partial_assistant": {
-                // Text content from assistant
-                const text = extractText(data);
-                if (text) {
-                    // For partial, we replace last assistant block; for full, append new
-                    setOutput(prev => {
-                        const marker = "\n---ASSISTANT---\n";
-                        const lastIdx = prev.lastIndexOf(marker);
-                        if (lastIdx !== -1 && msg.type === "partial_assistant") {
-                            return prev.substring(0, lastIdx + marker.length) + text;
-                        }
-                        return prev + marker + text;
-                    });
-                }
-                break;
-            }
-            case "result": {
-                // Final result
-                const text = extractText(data);
-                if (text) appendOutput("\n" + text + "\n");
-                break;
-            }
-            case "approval_request": {
-                // Tool approval needed
-                appendOutput(`\n\x1b[33m🔧 Tool: ${data.toolName}\x1b[0m\n`);
-                // Auto-approve in yolo mode
-                if (approvalMode === "yolo" && data.queryId) {
-                    fetch(`http://${window.location.hostname}:${API_PORT}/api/approve`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            queryId: data.queryId,
-                            requestId: data.requestId,
-                            approved: true,
-                        }),
-                    });
-                }
-                break;
-            }
-            case "done":
-                appendOutput("\n");
-                break;
-            case "error":
-                appendOutput(`\n❌ ${data.message || JSON.stringify(data)}\n`);
-                break;
-            default:
-                // Unknown message type, try to extract text
-                const t = extractText(data);
-                if (t) appendOutput(t);
-                break;
-        }
+                else if (msg.type === "exit") { setReady(false); setConnected(false); }
+                else if (msg.type === "error" && termRef.current) termRef.current.write(`\r\n\x1b[31m❌ ${msg.message}\x1b[0m\r\n`);
+            };
+            ws.onclose = () => { setConnected(false); setReady(false); };
+            ws.onerror = () => { setConnected(false); };
+        }, 500);
     };
 
-    // Extract text from various SDK message formats
-    const extractText = (data: any): string => {
-        if (!data) return "";
-        if (typeof data === "string") return data;
-        if (data.text) return data.text;
-        if (data.content) {
-            if (typeof data.content === "string") return data.content;
-            if (Array.isArray(data.content)) {
-                return data.content
-                    .filter((c: any) => c.type === "text")
-                    .map((c: any) => c.text || "")
-                    .join("");
-            }
+    const toggleMode = () => {
+        const newMode = !directMode;
+        directModeRef.current = newMode;
+        setDirectMode(newMode);
+        if (newMode && termRef.current) {
+            termRef.current.focus();
         }
-        if (data.message?.content) {
-            if (typeof data.message.content === "string") return data.message.content;
-            if (Array.isArray(data.message.content)) {
-                return data.message.content
-                    .filter((c: any) => c.type === "text")
-                    .map((c: any) => c.text || "")
-                    .join("");
-            }
-        }
-        return "";
-    };
-
-    const handleStop = () => {
-        if (abortRef.current) {
-            abortRef.current.abort();
+        if (!newMode && inputRef.current) {
+            inputRef.current.focus();
         }
     };
-
-    const handleClear = () => {
-        setOutput("Console cleared.\n");
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            if (!loading && input.trim()) {
-                sendQuery(input);
-            }
-        }
-    };
-
-    // Auto-send initial prompt
-    useEffect(() => {
-        if (connected && initialPrompt && !loading) {
-            const timer = setTimeout(() => {
-                sendQuery(initialPrompt);
-            }, 1000);
-            return () => clearTimeout(timer);
-        }
-    }, [connected, initialPrompt]);
 
     return (
         <div className="flex flex-col h-full">
-            {/* Output area */}
-            <pre
-                ref={outputRef}
-                className="flex-1 min-h-0 bg-[#1a1a2e] rounded-t-lg overflow-auto p-3 text-sm text-stone-200 font-mono leading-relaxed whitespace-pre-wrap break-words"
-                style={{ scrollBehavior: "smooth" }}
-            >
-                {output}
-                {loading && <span className="text-yellow-400 animate-pulse">▊</span>}
-            </pre>
+            {/* Terminal display */}
+            <div
+                ref={containerRef}
+                className="flex-1 min-h-0 bg-[#1a1a2e] rounded-t-lg overflow-hidden"
+                style={{ padding: "4px 4px 0 4px" }}
+                onClick={() => {
+                    if (termRef.current) termRef.current.focus();
+                }}
+            />
 
             {/* Input area */}
             <div className="shrink-0 border-t border-stone-700 bg-[#1a1a2e] px-3 py-2 rounded-b-lg">
-                <div className="flex items-end gap-2">
-                    <span className="text-green-400 mt-1 text-sm shrink-0">➜</span>
-                    <textarea
-                        ref={inputRef}
-                        value={input}
-                        onChange={(e) => {
-                            setInput(e.target.value);
-                            e.target.style.height = "auto";
-                            e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
-                        }}
-                        onKeyDown={handleKeyDown}
-                        disabled={!connected}
-                        placeholder={
-                            !connected ? "Connecting to Qwen API..." :
-                            loading ? "Waiting for response..." :
-                            "Type your prompt... (Shift+Enter for newline)"
-                        }
-                        className="flex-1 bg-transparent outline-none text-stone-200 text-sm disabled:opacity-50 resize-none min-h-[24px] max-h-[120px] overflow-y-auto leading-normal py-0 placeholder-stone-600"
-                        rows={1}
-                    />
-                    <div className="flex gap-1.5 shrink-0">
-                        {loading ? (
+                {!directMode ? (
+                    /* Textarea input mode */
+                    <div className="flex items-end gap-2">
+                        <span className="text-green-400 mt-1 text-sm shrink-0">➜</span>
+                        <textarea
+                            ref={inputRef}
+                            value={input}
+                            onChange={(e) => {
+                                setInput(e.target.value);
+                                e.target.style.height = "auto";
+                                e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSubmit();
+                                    e.currentTarget.style.height = "auto";
+                                }
+                            }}
+                            disabled={!connected}
+                            placeholder={
+                                !connected ? "Connecting..." :
+                                !ready ? "Starting Qwen CLI..." :
+                                "Type your prompt... (Shift+Enter for newline)"
+                            }
+                            className="flex-1 bg-transparent outline-none text-stone-200 text-sm disabled:opacity-50 resize-none min-h-[24px] max-h-[120px] overflow-y-auto leading-normal py-0 placeholder-stone-600"
+                            rows={1}
+                        />
+                        <div className="flex gap-1.5 shrink-0">
                             <button
-                                onClick={handleStop}
-                                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-900 text-red-300 border border-red-700 hover:bg-red-800 transition-colors"
-                                title="Stop current response"
-                            >
-                                ⏹ Stop
-                            </button>
-                        ) : (
-                            <button
-                                onClick={() => input.trim() && sendQuery(input)}
+                                onClick={handleSubmit}
                                 disabled={!connected || !input.trim()}
                                 className="px-3 py-1.5 rounded-lg text-xs font-bold bg-stone-800 text-stone-300 border border-stone-600 hover:bg-stone-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 ▶ Send
                             </button>
-                        )}
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    /* Direct mode hint */
+                    <div className="flex items-center gap-2">
+                        <span className="text-green-400 text-sm">⌨️</span>
+                        <span className="text-stone-500 text-xs">
+                            Click here and type directly — arrow keys, Tab, and interactive menus work.
+                        </span>
+                    </div>
+                )}
+                {/* Bottom bar: status + buttons */}
                 <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${connected ? "bg-green-500" : "bg-red-500"}`} />
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${connected && ready ? "bg-green-500" : connected ? "bg-yellow-500 animate-pulse" : "bg-red-500"}`} />
                         <span className="text-[10px] text-stone-500">
-                            {connected ? (loading ? "Thinking..." : `Qwen API ready (${approvalMode})`) : "Disconnected"}
+                            {connected && ready ? `Qwen CLI ready (${approvalMode})` :
+                             connected ? "Starting Qwen CLI..." : "Disconnected"}
                         </span>
                     </div>
                     <div className="flex gap-1.5">
                         <button
-                            onClick={handleClear}
+                            onClick={toggleMode}
                             className="px-2 py-1 rounded text-[10px] font-bold bg-stone-800 text-stone-400 border border-stone-600 hover:bg-stone-700 hover:text-stone-200 transition-colors"
-                            title="Clear console output"
+                            title={directMode ? "Switch to textarea input" : "Switch to direct terminal input"}
                         >
-                            🗑 Clear
+                            {directMode ? "📝 Textarea" : "⌨️ Direct"}
+                        </button>
+                        <button
+                            onClick={handleRestart}
+                            className="px-2 py-1 rounded text-[10px] font-bold bg-stone-800 text-stone-400 border border-stone-600 hover:bg-stone-700 hover:text-stone-200 transition-colors"
+                            title="Kill and restart session"
+                        >
+                            🔄 Restart
+                        </button>
+                        <button
+                            onClick={() => {
+                                // Send Ctrl+C to abort current operation
+                                sendToPty("\x03");
+                            }}
+                            disabled={!connected}
+                            className="px-2 py-1 rounded text-[10px] font-bold bg-red-900 text-red-300 border border-red-700 hover:bg-red-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Send Ctrl+C to stop current operation"
+                        >
+                            ⏹ Stop
                         </button>
                     </div>
                 </div>
