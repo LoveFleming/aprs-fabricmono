@@ -402,22 +402,116 @@ const WS_PORT = parseInt(process.env.QWEN_WS_PORT || "4098", 10);
 const wss = new WebSocketServer({ port: WS_PORT, host: "0.0.0.0" });
 const ptySessions = new Map(); // ws -> { pty, id }
 
-// Resolve qwen CLI binary
-// Path to qwen CLI (hardcoded per platform)
-// Windows: use cmd.exe to run qwen (handles PATH and .cmd files)
-// Mac/Linux: /opt/homebrew/bin/qwen
-const QWEN_BIN = process.env.QWEN_BIN || (process.platform === "win32" ? "cmd.exe" : "/opt/homebrew/bin/qwen");
+// ── Platform-specific Qwen CLI spawn functions ──
+
+/**
+ * macOS: qwen installed via Homebrew
+ * Binary path: /opt/homebrew/bin/qwen (Apple Silicon) or /usr/local/bin/qwen (Intel)
+ */
+function spawnQwenMac(ptySpawn, opts) {
+  const { cwd, model, approvalMode, systemPrompt } = opts;
+  const args = [];
+  if (model) args.push("-m", model);
+  if (approvalMode === "yolo") args.push("-y");
+  else if (approvalMode) args.push("--approval-mode", approvalMode);
+  if (systemPrompt) args.push("--system-prompt", systemPrompt);
+
+  // Try Homebrew paths
+  const qwenBin = process.env.QWEN_BIN || "/opt/homebrew/bin/qwen";
+
+  const ptyOpts = {
+    name: "xterm-256color",
+    cols: 120,
+    rows: 30,
+    cwd: cwd || resolve(process.cwd(), "../../"),
+    env: { ...process.env },
+  };
+
+  console.log(`[PTY:Mac] Spawning: ${qwenBin} ${args.join(" ")} (cwd: ${cwd || "default"})`);
+  return ptySpawn(qwenBin, args, ptyOpts);
+}
+
+/**
+ * Linux (Ubuntu): qwen installed via npm/npx (no Homebrew)
+ * Uses PATH to find qwen binary
+ */
+function spawnQwenLinux(ptySpawn, opts) {
+  const { cwd, model, approvalMode, systemPrompt } = opts;
+  const args = [];
+  if (model) args.push("-m", model);
+  if (approvalMode === "yolo") args.push("-y");
+  else if (approvalMode) args.push("--approval-mode", approvalMode);
+  if (systemPrompt) args.push("--system-prompt", systemPrompt);
+
+  // Linux: use PATH-resolved 'qwen', or override via env var
+  const qwenBin = process.env.QWEN_BIN || "qwen";
+
+  const ptyOpts = {
+    name: "xterm-256color",
+    cols: 120,
+    rows: 30,
+    cwd: cwd || resolve(process.cwd(), "../../"),
+    env: { ...process.env },
+  };
+
+  console.log(`[PTY:Linux] Spawning: ${qwenBin} ${args.join(" ")} (cwd: ${cwd || "default"})`);
+  return ptySpawn(qwenBin, args, ptyOpts);
+}
+
+/**
+ * Windows: qwen installed via npm global
+ * Uses qwen.cmd wrapper (npm .cmd shim)
+ * node-pty on Windows uses ConPTY
+ */
+function spawnQwenWindows(ptySpawn, opts) {
+  const { cwd, model, approvalMode, systemPrompt } = opts;
+  const args = [];
+  if (model) args.push("-m", model);
+  if (approvalMode === "yolo") args.push("-y");
+  else if (approvalMode) args.push("--approval-mode", approvalMode);
+  if (systemPrompt) args.push("--system-prompt", systemPrompt);
+
+  // Windows: qwen.cmd is found via PATH
+  // If that fails, set QWEN_BIN env var to full path
+  const qwenBin = process.env.QWEN_BIN || "qwen.cmd";
+
+  const ptyOpts = {
+    name: "xterm-256color",
+    cols: 120,
+    rows: 30,
+    cwd: cwd || resolve(process.cwd(), "../../"),
+    env: { ...process.env },
+  };
+
+  console.log(`[PTY:Windows] Spawning: ${qwenBin} ${args.join(" ")} (cwd: ${cwd || "default"})`);
+  return ptySpawn(qwenBin, args, ptyOpts);
+}
+
+/**
+ * Pick the right spawn function for the current platform
+ */
+function getSpawnFn() {
+  const platform = process.platform;
+  if (platform === "win32") return spawnQwenWindows;
+  if (platform === "darwin") return spawnQwenMac;
+  // Linux and others
+  return spawnQwenLinux;
+}
+
+const spawnQwen = getSpawnFn();
+console.log(`[PTY] Platform: ${process.platform}, using ${spawnQwen.name}`);
+
+// ── WebSocket connection handler ──
 
 wss.on("connection", (ws, req) => {
   const sessionId = `pty-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   console.log(`[PTY] New session: ${sessionId}`);
 
-  let spawned = false; // Guard: only spawn once per WS connection
+  let spawned = false;
 
   ws.on("message", (raw) => {
     let msg;
     try { msg = JSON.parse(raw.toString()); } catch {
-      // If not JSON, treat as raw input to PTY
       const session = ptySessions.get(ws);
       if (session?.pty) session.pty.write(raw.toString());
       return;
@@ -429,33 +523,11 @@ wss.on("connection", (ws, req) => {
         return;
       }
       spawned = true;
-      // Clean up previous PTY if any
       const old = ptySessions.get(ws);
       if (old?.pty) { old.pty.kill(); }
 
-      const { cwd, model, approvalMode, systemPrompt } = msg.options || {};
-      const isWin = process.platform === "win32";
-      const args = [];
-      if (isWin) { args.push("/c", "qwen"); }
-      if (model) { args.push("-m", model); }
-      if (approvalMode === "yolo") { args.push("-y"); }
-      else if (approvalMode) { args.push("--approval-mode", approvalMode); }
-      if (systemPrompt) { args.push("--system-prompt", systemPrompt); }
-
-      console.log(`[PTY] Spawning: ${QWEN_BIN} ${args.join(" ")} (cwd: ${cwd || "default"})`);
-
       try {
-        const isWin = process.platform === "win32";
-
-        // Use node-pty on all platforms (Ink TUI requires a real PTY)
-        const ptyOpts = {
-          name: "xterm-256color",
-          cols: 120,
-          rows: 30,
-          cwd: cwd || resolve(process.cwd(), "../../"),
-          env: { ...process.env },
-        };
-        const pty = ptySpawn(QWEN_BIN, args, ptyOpts);
+        const pty = spawnQwen(ptySpawn, msg.options || {});
 
         ptySessions.set(ws, { pty, id: sessionId });
 
