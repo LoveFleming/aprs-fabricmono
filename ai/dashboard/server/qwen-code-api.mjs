@@ -408,17 +408,55 @@ const qwenResolve = await (async () => {
   if (process.env.QWEN_BIN) return { cmd: process.env.QWEN_BIN, args: [] };
   if (process.platform !== "win32") return { cmd: "/opt/homebrew/bin/qwen", args: [] };
   // Windows: bypass qwen.cmd by spawning node directly with the JS entry
-  const { existsSync } = await import("fs");
+  const { existsSync, readFileSync } = await import("fs");
   const nodeExe = process.execPath;
   const appData = process.env.APPDATA || "";
   const nodeDir = dirname(nodeExe);
+
+  // Try to parse qwen.cmd to find the actual entry point
+  const cmdCandidates = [
+    join(appData, "npm", "qwen.cmd"),
+    join(nodeDir, "qwen.cmd"),
+  ];
+  for (const cmdPath of cmdCandidates) {
+    if (existsSync(cmdPath)) {
+      try {
+        const content = readFileSync(cmdPath, "utf-8");
+        // Typical npm .cmd content: node "%~dp0\node_modules\@qwen-code\qwen-code\cli.js" %*
+        // or: node "%~dp0\..\..\...\dist\index.js"
+        const match = content.match(/node\s+["']?(%~dp0[\\/][^"'\s]+)["']?/i);
+        if (match) {
+          // Replace %~dp0 with the cmd's directory
+          const cmdDir = dirname(cmdPath);
+          let jsPath = match[1].replace(/%~dp0/i, cmdDir);
+          // Normalize path
+          jsPath = resolve(jsPath);
+          if (existsSync(jsPath)) {
+            console.log(`[QWEN] Parsed from ${cmdPath}: node ${jsPath}`);
+            return { cmd: nodeExe, args: [jsPath] };
+          }
+        }
+        // Try another pattern: "%~dp0\..\.."
+        const match2 = content.match(/node\s+["']?([^"'\s]+\.js)["']?/i);
+        if (match2) {
+          let jsPath = match2[1].replace(/%~dp0/i, dirname(cmdPath));
+          jsPath = resolve(jsPath);
+          if (existsSync(jsPath)) {
+            console.log(`[QWEN] Parsed from ${cmdPath}: node ${jsPath}`);
+            return { cmd: nodeExe, args: [jsPath] };
+          }
+        }
+      } catch (e) {
+        console.warn(`[QWEN] Failed to parse ${cmdPath}:`, e.message);
+      }
+    }
+  }
+
+  // Hardcoded candidates as fallback
   const candidates = [
-    // nodejs directory: @qwen-code\qwen-code\cli.js
     join(nodeDir, "node_modules", "@qwen-code", "qwen-code", "cli.js"),
-    // Roaming npm: dist\index.js
     join(appData, "npm", "node_modules", "@qwen-code", "qwen-code", "dist", "index.js"),
     join(appData, "npm", "node_modules", "@qwen-code", "qwen-code", "cli.js"),
-    // Legacy paths
     join(appData, "npm", "node_modules", "@anthropic-ai", "qwen-code", "dist", "cli.js"),
     join(nodeDir, "node_modules", "@anthropic-ai", "qwen-code", "dist", "cli.js"),
   ];
@@ -478,7 +516,18 @@ wss.on("connection", (ws, req) => {
           cwd: cwd || resolve(process.cwd(), "../../"),
           env: { ...process.env },
         };
-        const pty = ptySpawn(qwenResolve.cmd, args, ptyOpts);
+
+        // Windows: use cmd.exe /c to handle paths with spaces properly
+        let spawnCmd = qwenResolve.cmd;
+        let spawnArgs = args;
+        if (isWin && qwenResolve.args.length > 0) {
+          // Wrap: cmd /c "node "path with spaces" arg1 arg2"
+          const fullCmd = `"${qwenResolve.cmd}" ${args.map(a => a.includes(' ') ? `"${a}"` : a).join(' ')}`;
+          spawnCmd = 'cmd.exe';
+          spawnArgs = ['/c', fullCmd];
+        }
+
+        const pty = ptySpawn(spawnCmd, spawnArgs, ptyOpts);
 
         ptySessions.set(ws, { pty, id: sessionId });
 
