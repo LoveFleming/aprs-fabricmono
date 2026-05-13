@@ -410,10 +410,17 @@ const qwenResolve = await (async () => {
   // Windows: bypass qwen.cmd by spawning node directly with the JS entry
   const { existsSync } = await import("fs");
   const nodeExe = process.execPath;
+  const appData = process.env.APPDATA || "";
+  const nodeDir = dirname(nodeExe);
   const candidates = [
-    join(process.env.APPDATA || "", "npm", "node_modules", "@anthropic-ai", "qwen-code", "dist", "cli.js"),
-    join(process.env.APPDATA || "", "npm", "node_modules", "qwen-code", "dist", "cli.js"),
-    join(dirname(nodeExe), "node_modules", "@anthropic-ai", "qwen-code", "dist", "cli.js"),
+    // nodejs directory: @qwen-code\qwen-code\cli.js
+    join(nodeDir, "node_modules", "@qwen-code", "qwen-code", "cli.js"),
+    // Roaming npm: dist\index.js
+    join(appData, "npm", "node_modules", "@qwen-code", "qwen-code", "dist", "index.js"),
+    join(appData, "npm", "node_modules", "@qwen-code", "qwen-code", "cli.js"),
+    // Legacy paths
+    join(appData, "npm", "node_modules", "@anthropic-ai", "qwen-code", "dist", "cli.js"),
+    join(nodeDir, "node_modules", "@anthropic-ai", "qwen-code", "dist", "cli.js"),
   ];
   for (const p of candidates) {
     if (existsSync(p)) {
