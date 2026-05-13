@@ -404,9 +404,9 @@ const ptySessions = new Map(); // ws -> { pty, id }
 
 // Resolve qwen CLI binary
 // Path to qwen CLI (hardcoded per platform)
-// Windows: "C:\Program Files\nodejs\qwen.cmd" or "%APPDATA%\npm\qwen.cmd"
+// Windows: use cmd.exe to run qwen (handles PATH and .cmd files)
 // Mac/Linux: /opt/homebrew/bin/qwen
-const QWEN_BIN = process.env.QWEN_BIN || (process.platform === "win32" ? "qwen.cmd" : "/opt/homebrew/bin/qwen");
+const QWEN_BIN = process.env.QWEN_BIN || (process.platform === "win32" ? "cmd.exe" : "/opt/homebrew/bin/qwen");
 
 wss.on("connection", (ws, req) => {
   const sessionId = `pty-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -434,7 +434,9 @@ wss.on("connection", (ws, req) => {
       if (old?.pty) { old.pty.kill(); }
 
       const { cwd, model, approvalMode, systemPrompt } = msg.options || {};
+      const isWin = process.platform === "win32";
       const args = [];
+      if (isWin) { args.push("/c", "qwen"); }
       if (model) { args.push("-m", model); }
       if (approvalMode === "yolo") { args.push("-y"); }
       else if (approvalMode) { args.push("--approval-mode", approvalMode); }
