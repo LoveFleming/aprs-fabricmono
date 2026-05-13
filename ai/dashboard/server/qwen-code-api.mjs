@@ -518,20 +518,13 @@ wss.on("connection", (ws, req) => {
           env: { ...process.env },
         };
 
-        // Windows: resolve short (8.3) path to avoid spaces in node.exe / JS entry path
-        // This avoids needing cmd.exe /c wrapper which breaks --system-prompt with spaces
         let spawnCmd = qwenResolve.cmd;
         let spawnArgs = args;
         if (isWin && qwenResolve.args.length > 0) {
-          try {
-            const shortNode = execSync(`cmd /c for %I in ("${qwenResolve.cmd}") do @echo %~sI`, { encoding: 'utf8' }).trim();
-            const shortJs = execSync(`cmd /c for %I in ("${qwenResolve.args[0]}") do @echo %~sI`, { encoding: 'utf8' }).trim();
-            spawnCmd = shortNode;
-            spawnArgs = [shortJs, ...args.slice(1)];
-            console.log(`[PTY] Short paths: ${spawnCmd} ${spawnArgs[0]}`);
-          } catch (e) {
-            console.warn(`[PTY] Short path failed, using original paths:`, e.message);
-          }
+          // Windows: spawn node directly, quote the JS entry path
+          spawnCmd = 'node';
+          spawnArgs = [`"${qwenResolve.args[0]}"`, ...args.slice(1)];
+          console.log(`[PTY] Windows spawn: node ${spawnArgs[0]}`);
         }
 
         const pty = ptySpawn(spawnCmd, spawnArgs, ptyOpts);
