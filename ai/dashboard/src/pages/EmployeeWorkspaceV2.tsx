@@ -145,15 +145,6 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
     const stats = [
         { label: "指派任務", value: "12", icon: "chat" as const, color: "text-blue-500" },
         { label: "完成任務", value: "8", icon: "check" as const, color: "text-emerald-500" },
-        { label: "協作成員", value: "6", icon: "brain" as const, color: "text-blue-500" },
-        { label: "準確度", value: "98%", icon: "star" as const, color: "text-amber-500" },
-    ];
-
-    const quickActions = [
-        { label: "查看工廠標準", icon: "ruler" as const },
-        { label: "瀏覽標準文件", icon: "document" as const },
-        { label: "管理AI團隊", icon: "brain" as const },
-        { label: "建立新任務", icon: "edit" as const },
     ];
 
     if (!employee) return <div className="p-8 text-stone-400">Employee not found</div>;
@@ -364,7 +355,7 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
             </div>
 
             {/* ===== Right Sidebar (~30%) ===== */}
-            <div className="w-72 shrink-0 border-l border-stone-100 bg-white/80 overflow-y-auto p-3 space-y-2.5">
+            <div className="w-72 shrink-0 border-l border-stone-100 bg-white/80 overflow-y-auto p-3 flex flex-col gap-2.5">
 
                 {/* Overview Stats */}
                 <Card className="p-3 border border-stone-100 shadow-sm">
@@ -383,25 +374,8 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                     </div>
                 </Card>
 
-                {/* Quick Actions */}
-                <Card className="p-3 border border-stone-100 shadow-sm">
-                    <h3 className="font-bold text-stone-700 text-sm mb-1.5">快速操作</h3>
-                    <div className="space-y-1">
-                        {quickActions.map(a => (
-                            <button
-                                key={a.label}
-                                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors text-left group"
-                            >
-                                <Icon name={a.icon} size={14} className="text-blue-500" />
-                                <span className="text-xs text-stone-600 flex-1">{a.label}</span>
-                                <Icon name="arrow" size={10} className="text-stone-300 group-hover:text-blue-400 transition-colors" />
-                            </button>
-                        ))}
-                    </div>
-                </Card>
-
                 {/* Recent Conversations */}
-                <Card className="p-3 border border-stone-100 shadow-sm">
+                <Card className="p-3 border border-stone-100 shadow-sm flex-1">
                     <div className="flex items-center justify-between mb-1.5">
                         <h3 className="font-bold text-stone-700 text-sm">最近對話</h3>
                         <span className="text-[10px] text-blue-500 cursor-pointer hover:text-blue-700">查看全部</span>
@@ -435,8 +409,8 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                     )}
                 </Card>
 
-                {/* Quote */}
-                <Card className="p-4 border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm relative overflow-hidden">
+                {/* Quote — pinned to bottom */}
+                <Card className="p-4 border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm relative overflow-hidden mt-auto">
                     <div className="absolute top-2 right-3 text-5xl text-blue-200/40 font-serif">"</div>
                     <p className="text-sm text-stone-600 italic leading-relaxed relative z-10">
                         導入創新，萬機皆服務，萬事皆連結。
