@@ -142,6 +142,19 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // GET /api/clis — list installed CLI tools
+  if (req.method === "GET" && req.url === "/api/clis") {
+    try {
+      const clis = await checkInstalledClis();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(clis));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
   // GET /api/models — list available models from ~/.qwen/settings.json
   if (req.method === "GET" && req.url === "/api/models") {
     try {
@@ -564,90 +577,95 @@ const WS_PORT = parseInt(process.env.QWEN_WS_PORT || "4098", 10);
 const wss = new WebSocketServer({ port: WS_PORT, host: "0.0.0.0" });
 const ptySessions = new Map(); // ws -> { pty, id }
 
-// ── Platform-specific Qwen CLI spawn functions ──
+// ── Multi-CLI spawn system ──
+// Supports: qwen, claude, opencode
+// Each CLI has its own binary name, flags, and platform resolution
 
-/**
- * macOS: qwen installed via Homebrew
- * Binary path: /opt/homebrew/bin/qwen (Apple Silicon) or /usr/local/bin/qwen (Intel)
- */
-function spawnQwenMac(ptySpawn, opts) {
-  const { cwd, model, approvalMode } = opts;
-  const args = [];
-  if (model) args.push("-m", model);
-  if (approvalMode === "yolo") args.push("-y");
-  else if (approvalMode) args.push("--approval-mode", approvalMode);
-  // Note: systemPrompt is NOT passed as CLI arg (long strings with newlines unreliable)
-  // Instead, it will be sent via bracketed paste after CLI is ready
+const CLI_CONFIGS = {
+  qwen: {
+    name: "Qwen Code",
+    bins: { darwin: "/opt/homebrew/bin/qwen", linux: "qwen", win32: "qwen.cmd" },
+    envBin: "QWEN_BIN",
+    buildArgs: (opts) => {
+      const args = [];
+      if (opts.model) args.push("-m", opts.model);
+      if (opts.approvalMode === "yolo") args.push("-y");
+      else if (opts.approvalMode) args.push("--approval-mode", opts.approvalMode);
+      return args;
+    },
+  },
+  claude: {
+    name: "Claude Code",
+    bins: { darwin: "claude", linux: "claude", win32: "claude.cmd" },
+    envBin: "CLAUDE_BIN",
+    buildArgs: (opts) => {
+      const args = [];
+      if (opts.model) args.push("--model", opts.model);
+      // Claude Code permission modes
+      if (opts.approvalMode === "yolo") args.push("--dangerously-skip-permissions", "--allow-dangerously-skip-permissions");
+      else if (opts.approvalMode === "auto-edit") args.push("--permission-mode", "acceptEdits");
+      else if (opts.approvalMode === "plan") args.push("--permission-mode", "plan");
+      else if (opts.approvalMode) args.push("--permission-mode", opts.approvalMode);
+      return args;
+    },
+  },
+  opencode: {
+    name: "OpenCode",
+    bins: { darwin: "opencode", linux: "opencode", win32: "opencode.cmd" },
+    envBin: "OPENCODE_BIN",
+    buildArgs: (opts) => {
+      const args = [];
+      if (opts.model) args.push("-m", opts.model);
+      // OpenCode runs as TUI by default, no separate approval mode flags
+      // but we can pass --prompt for non-interactive
+      return args;
+    },
+  },
+};
 
-  const qwenBin = process.env.QWEN_BIN || "/opt/homebrew/bin/qwen";
-  const resolvedCwd = cwd || process.env.QWEN_CWD || resolve(DATA_ROOT, "../../");
-  const ptyOpts = {
-    name: "xterm-256color", cols: 120, rows: 30,
-    cwd: resolvedCwd,
-    env: { ...process.env },
-  };
-  console.log(`[PTY:Mac] Spawning: ${qwenBin} (cwd: ${resolvedCwd})`);
-  return ptySpawn(qwenBin, args, ptyOpts);
-}
+function spawnCli(ptySpawn, opts) {
+  const cliType = opts.cli || "qwen";
+  const config = CLI_CONFIGS[cliType];
+  if (!config) throw new Error(`Unknown CLI: ${cliType}`);
 
-/**
- * Linux (Ubuntu): qwen installed via npm/npx (no Homebrew)
- * Uses PATH to find qwen binary
- */
-function spawnQwenLinux(ptySpawn, opts) {
-  const { cwd, model, approvalMode } = opts;
-  const args = [];
-  if (model) args.push("-m", model);
-  if (approvalMode === "yolo") args.push("-y");
-  else if (approvalMode) args.push("--approval-mode", approvalMode);
-
-  const qwenBin = process.env.QWEN_BIN || "qwen";
-  const resolvedCwd = cwd || process.env.QWEN_CWD || resolve(DATA_ROOT, "../../");
-  const ptyOpts = {
-    name: "xterm-256color", cols: 120, rows: 30,
-    cwd: resolvedCwd,
-    env: { ...process.env },
-  };
-  console.log(`[PTY:Linux] Spawning: ${qwenBin} (cwd: ${resolvedCwd})`);
-  return ptySpawn(qwenBin, args, ptyOpts);
-}
-
-/**
- * Windows: qwen installed via npm global
- * Uses qwen.cmd wrapper (npm .cmd shim)
- * node-pty on Windows uses ConPTY
- */
-function spawnQwenWindows(ptySpawn, opts) {
-  const { cwd, model, approvalMode } = opts;
-  const args = [];
-  if (model) args.push("-m", model);
-  if (approvalMode === "yolo") args.push("-y");
-  else if (approvalMode) args.push("--approval-mode", approvalMode);
-
-  const qwenBin = process.env.QWEN_BIN || "qwen.cmd";
-  const resolvedCwd = cwd || process.env.QWEN_CWD || resolve(DATA_ROOT, "../../");
-  const ptyOpts = {
-    name: "xterm-256color", cols: 120, rows: 30,
-    cwd: resolvedCwd,
-    env: { ...process.env },
-  };
-  console.log(`[PTY:Windows] Spawning: ${qwenBin} (cwd: ${resolvedCwd})`);
-  return ptySpawn(qwenBin, args, ptyOpts);
-}
-
-/**
- * Pick the right spawn function for the current platform
- */
-function getSpawnFn() {
   const platform = process.platform;
-  if (platform === "win32") return spawnQwenWindows;
-  if (platform === "darwin") return spawnQwenMac;
-  // Linux and others
-  return spawnQwenLinux;
+  const binKey = platform === "win32" ? "win32" : platform === "darwin" ? "darwin" : "linux";
+  const bin = process.env[config.envBin] || config.bins[binKey];
+  const args = config.buildArgs(opts);
+  const resolvedCwd = opts.cwd || process.env.QWEN_CWD || resolve(DATA_ROOT, "../../");
+
+  const ptyOpts = {
+    name: "xterm-256color", cols: 120, rows: 30,
+    cwd: resolvedCwd,
+    env: { ...process.env },
+  };
+
+  console.log(`[PTY] Spawning ${config.name}: ${bin} ${args.join(" ")} (cwd: ${resolvedCwd})`);
+  return ptySpawn(bin, args, ptyOpts);
 }
 
-const spawnQwen = getSpawnFn();
-console.log(`[PTY] Platform: ${process.platform}, using ${spawnQwen.name}`);
+// ── Check which CLIs are installed ──
+async function checkInstalledClis() {
+  const results = {};
+  for (const [key, config] of Object.entries(CLI_CONFIGS)) {
+    const platform = process.platform;
+    const binKey = platform === "win32" ? "win32" : platform === "darwin" ? "darwin" : "linux";
+    const bin = process.env[config.envBin] || config.bins[binKey];
+    const { stat } = await import("fs/promises");
+    try {
+      // For PATH-based binaries, check if they resolve
+      const { execFile } = await import("child_process");
+      await new Promise((res, rej) => {
+        const cmd = platform === "win32" ? "where" : "which";
+        execFile(cmd, [bin], (err) => err ? rej(err) : res(true));
+      });
+      results[key] = { installed: true, bin, name: config.name };
+    } catch {
+      results[key] = { installed: false, bin, name: config.name };
+    }
+  }
+  return results;
+}
 
 // ── WebSocket connection handler ──
 
@@ -675,7 +693,7 @@ wss.on("connection", (ws, req) => {
       if (old?.pty) { old.pty.kill(); }
 
       try {
-        const pty = spawnQwen(ptySpawn, msg.options || {});
+        const pty = spawnCli(ptySpawn, msg.options || {});
 
         ptySessions.set(ws, { pty, id: sessionId });
 
@@ -735,3 +753,10 @@ wss.on("connection", (ws, req) => {
 });
 
 console.log(`[PTY-WS] WebSocket server listening on ws://127.0.0.1:${WS_PORT}`);
+
+// Log installed CLIs on startup
+checkInstalledClis().then(clis => {
+  for (const [key, info] of Object.entries(clis)) {
+    console.log(`[CLI] ${info.name}: ${info.installed ? `✅ ${info.bin}` : "❌ not found"}`);
+  }
+}).catch(() => {});

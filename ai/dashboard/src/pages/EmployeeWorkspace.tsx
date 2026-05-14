@@ -180,6 +180,8 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
     const [models, setModels] = useState<ModelOption[]>([]);
     const [selectedModel, setSelectedModel] = useState<string>("");
     const [permissionMode, setPermissionMode] = useState<string>("yolo");
+    const [selectedCli, setSelectedCli] = useState<string>("qwen");
+    const [installedClis, setInstalledClis] = useState<Record<string, { installed: boolean; name: string }>>({});
     const [conversations, setConversations] = useState<ConvSummary[]>([]);
     const [showConvHistory, setShowConvHistory] = useState(false);
 
@@ -193,6 +195,14 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                 const current = list.find((m: ModelOption) => m.current);
                 if (current) setSelectedModel(current.id);
             })
+            .catch(() => {});
+    }, []);
+
+    // Load installed CLIs
+    useEffect(() => {
+        fetch("http://127.0.0.1:4097/api/clis")
+            .then(r => r.json())
+            .then(data => setInstalledClis(data))
             .catch(() => {});
     }, []);
 
@@ -229,6 +239,34 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
             .filter(([_, v]) => v)
             .map(([k]) => k);
     }, [enabledSkills]);
+
+    // Derive CLI, model, approvalMode from first selected skill (or fallback to employee defaults)
+    const effectiveCli = useMemo(() => {
+        if (!employee) return "qwen";
+        for (const id of selectedSkillIds) {
+            const sk = employee.skills.find(s => s.id === id);
+            if (sk?.cli) return sk.cli;
+        }
+        return "qwen";
+    }, [employee, selectedSkillIds]);
+
+    const effectiveModel = useMemo(() => {
+        if (!employee) return selectedModel;
+        for (const id of selectedSkillIds) {
+            const sk = employee.skills.find(s => s.id === id);
+            if (sk?.model) return sk.model;
+        }
+        return selectedModel;
+    }, [employee, selectedSkillIds, selectedModel]);
+
+    const effectiveApprovalMode = useMemo(() => {
+        if (!employee) return permissionMode;
+        for (const id of selectedSkillIds) {
+            const sk = employee.skills.find(s => s.id === id);
+            if (sk?.approvalMode) return sk.approvalMode;
+        }
+        return permissionMode;
+    }, [employee, selectedSkillIds, permissionMode]);
 
     // Collect all requiredInputs from enabled skills
     const allRequiredInputs = useMemo(() => {
@@ -407,6 +445,19 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                                     </button>
                                 )}
                                 {/* Model selector */}
+                                {/* CLI selector */}
+                                <select
+                                    value={selectedCli}
+                                    onChange={e => setSelectedCli(e.target.value)}
+                                    className="px-2 py-1.5 rounded-xl border border-orange-200 text-xs text-stone-500 bg-white hover:border-orange-300 transition-all"
+                                    title="選擇 CLI Engine"
+                                >
+                                    {Object.entries(installedClis).map(([key, info]: [string, any]) => (
+                                        <option key={key} value={key} disabled={!info.installed}>
+                                            {info.name} {info.installed ? '' : '(未安裝)'}
+                                        </option>
+                                    ))}
+                                </select>
                                 {models.length > 0 && (
                                     <select
                                         value={selectedModel}
@@ -523,8 +574,9 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                     <TerminalConsole
                         key={`terminal-${consoleKey}`}
                         cwd={undefined}
-                        model={selectedModel || undefined}
-                        approvalMode={permissionMode}
+                        cli={effectiveCli}
+                        model={effectiveModel || undefined}
+                        approvalMode={effectiveApprovalMode}
                         systemPrompt={undefined}
                         initialPrompt={chatStarted ? [
                             systemPrompt ? `# System Instructions\n${systemPrompt}` : '',

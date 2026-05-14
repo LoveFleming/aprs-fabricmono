@@ -22,6 +22,8 @@ export interface RequiredInput {
     group?: string;  // 分組顯示
 }
 
+export type CliEngine = "qwen" | "claude" | "opencode";
+
 export interface CrewSkill {
     id: string;
     name: string;
@@ -30,6 +32,9 @@ export interface CrewSkill {
     prompt: string;
     knowledge?: string[];
     requiredInputs?: RequiredInput[];
+    cli?: CliEngine;
+    model?: string;
+    approvalMode?: string;
 }
 
 export interface ChatConfig {

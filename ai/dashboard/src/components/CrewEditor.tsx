@@ -18,6 +18,7 @@ const EMPTY_SKILL: CrewSkill = {
     enabled: true,
     prompt: "",
     requiredInputs: [],
+    cli: "qwen",
 };
 
 const EMPTY_INPUT: RequiredInput = {
@@ -323,6 +324,35 @@ export default function CrewEditor({ crew, onSave, onDelete, onCancel }: CrewEdi
                                         rows={3}
                                         className="w-full mt-1 px-2 py-1.5 border border-stone-300 rounded-lg text-xs font-mono"
                                         placeholder="Skill-specific system prompt instructions..." />
+                                </div>
+                                {/* CLI Engine / Model / Approval Mode */}
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label className="text-xs font-semibold text-stone-500">CLI Engine</label>
+                                        <select value={sk.cli || "qwen"} onChange={e => updateSkill(skIdx, "cli", e.target.value)}
+                                            className="w-full mt-1 px-2 py-1.5 border border-stone-300 rounded-lg text-xs">
+                                            <option value="qwen">🟣 Qwen Code</option>
+                                            <option value="claude">🟠 Claude Code</option>
+                                            <option value="opencode">🔵 OpenCode</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold text-stone-500">Model</label>
+                                        <input value={sk.model || ""} onChange={e => updateSkill(skIdx, "model", e.target.value)}
+                                            className="w-full mt-1 px-2 py-1.5 border border-stone-300 rounded-lg text-xs"
+                                            placeholder="Default (inherit)" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-semibold text-stone-500">Approval Mode</label>
+                                        <select value={sk.approvalMode || ""} onChange={e => updateSkill(skIdx, "approvalMode", e.target.value)}
+                                            className="w-full mt-1 px-2 py-1.5 border border-stone-300 rounded-lg text-xs">
+                                            <option value="">Default (inherit)</option>
+                                            <option value="default">🔒 Default</option>
+                                            <option value="auto-edit">✏️ Auto-Edit</option>
+                                            <option value="yolo">🚀 YOLO</option>
+                                            <option value="plan">📋 Plan</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 {/* Required Inputs for this skill */}

@@ -5,6 +5,7 @@ import "@xterm/xterm/css/xterm.css";
 
 interface TerminalConsoleProps {
     cwd?: string;
+    cli?: string;
     model?: string;
     approvalMode?: string;
     systemPrompt?: string;
@@ -17,6 +18,7 @@ const WS_PORT = 4098;
 
 export default function TerminalConsole({
     cwd,
+    cli = "qwen",
     model,
     approvalMode = "yolo",
     systemPrompt,
@@ -39,8 +41,8 @@ export default function TerminalConsole({
     const mountedRef = useRef(true);
 
     // Stable options ref so closures always see latest props
-    const optsRef = useRef({ cwd, model, approvalMode, systemPrompt });
-    optsRef.current = { cwd, model, approvalMode, systemPrompt };
+    const optsRef = useRef({ cwd, cli, model, approvalMode, systemPrompt });
+    optsRef.current = { cwd, cli, model, approvalMode, systemPrompt };
 
     // Send a string to PTY via WebSocket
     const sendToPty = useCallback((text: string) => {
@@ -152,6 +154,7 @@ export default function TerminalConsole({
                 type: "spawn",
                 options: {
                     cwd: opts.cwd || undefined,
+                    cli: opts.cli || undefined,
                     model: opts.model || undefined,
                     approvalMode: opts.approvalMode || "yolo",
                     systemPrompt: opts.systemPrompt || undefined,
@@ -258,6 +261,7 @@ export default function TerminalConsole({
                     type: "spawn",
                     options: {
                         cwd: opts.cwd || undefined,
+                        cli: opts.cli || undefined,
                         model: opts.model || undefined,
                         approvalMode: opts.approvalMode || "yolo",
                         systemPrompt: opts.systemPrompt || undefined,
@@ -360,8 +364,8 @@ export default function TerminalConsole({
                     <div className="flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full shrink-0 ${connected && ready ? "bg-green-500" : connected ? "bg-yellow-500 animate-pulse" : "bg-red-500"}`} />
                         <span className="text-[10px] text-stone-500">
-                            {connected && ready ? `Qwen CLI ready (${approvalMode})` :
-                             connected ? "Starting Qwen CLI..." : "Disconnected"}
+                            {connected && ready ? `${cli === 'claude' ? 'Claude Code' : cli === 'opencode' ? 'OpenCode' : 'Qwen CLI'} ready (${approvalMode})` :
+                             connected ? `Starting ${cli === 'claude' ? 'Claude Code' : cli === 'opencode' ? 'OpenCode' : 'Qwen CLI'}...` : "Disconnected"}
                         </span>
                     </div>
                     <div className="flex gap-1.5">
