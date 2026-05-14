@@ -177,8 +177,8 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                         </div>
-                        {/* Info — left column */}
-                        <div className="flex-1 py-3 pr-2 flex flex-col justify-center min-w-0">
+                        {/* Info — left 60% */}
+                        <div className="flex-[3] py-3 pr-2 pl-4 flex flex-col justify-center min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                                 <span className="text-2xl font-bold text-stone-800">{employee.codename || employee.title}</span>
                                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">AI 員工</span>
@@ -193,11 +193,11 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                                 <span className="text-emerald-600 font-medium">在線上 · 隨時準備協助您</span>
                             </div>
                         </div>
-                        {/* Right column — skills + actions, no border */}
-                        <div className="shrink-0 py-3 pr-4 pl-4 flex flex-col justify-center gap-2 min-w-[220px] max-w-[280px]">
+                        {/* Right column — skills + actions, right 40% */}
+                        <div className="flex-[2] py-3 pr-4 pl-2 flex flex-col justify-center gap-2 min-w-0">
                             {/* Skills — two rows max */}
                             <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Skills</div>
-                            <div className="flex flex-wrap gap-1.5 max-h-[64px] overflow-y-auto">
+                            <div className="flex flex-wrap gap-1.5">
                                 {allSkills.map(sk => (
                                     <button
                                         key={sk.id}
