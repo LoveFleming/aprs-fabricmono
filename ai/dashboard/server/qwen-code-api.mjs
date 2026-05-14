@@ -171,6 +171,165 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // ── Crew CRUD endpoints ──
+
+  const CREW_DIR = resolve(DASHBOARD_ROOT, "public/crew");
+
+  // Helper: list all crew JSON files
+  async function listCrewFiles() {
+    await mkdir(CREW_DIR, { recursive: true });
+    const files = await readdir(CREW_DIR);
+    return files.filter(f => f.endsWith(".json") && !f.includes("conversation")).sort();
+  }
+
+  // GET /api/crew — list all crew members
+  if (req.method === "GET" && req.url === "/api/crew") {
+    try {
+      const files = await listCrewFiles();
+      const crew = await Promise.all(
+        files.map(async (name) => {
+          try {
+            const raw = await readFile(join(CREW_DIR, name), "utf-8");
+            return JSON.parse(raw);
+          } catch { return null; }
+        })
+      );
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(crew.filter(Boolean)));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // GET /api/crew/:id — get single crew member
+  const crewGetMatch = req.method === "GET" && req.url?.match(/^\/api\/crew\/([\w.-]+)$/);
+  if (crewGetMatch) {
+    const crewId = crewGetMatch[1];
+    try {
+      const files = await listCrewFiles();
+      const target = files.find(f => {
+        try {
+          const raw = await readFile(join(CREW_DIR, f), "utf-8");
+          const data = JSON.parse(raw);
+          return data.id === crewId;
+        } catch { return false; }
+      });
+      if (!target) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Crew not found" }));
+        return;
+      }
+      const content = await readFile(join(CREW_DIR, target), "utf-8");
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(content);
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // POST /api/crew — create new crew member
+  if (req.method === "POST" && req.url === "/api/crew") {
+    const body = await readBody(req);
+    let parsed;
+    try { parsed = JSON.parse(body); } catch { res.writeHead(400); res.end("Invalid JSON"); return; }
+    if (!parsed.id) { res.writeHead(400); res.end("Missing 'id'"); return; }
+    if (!parsed.title) { res.writeHead(400); res.end("Missing 'title'"); return; }
+
+    try {
+      // Check for duplicate id
+      const files = await listCrewFiles();
+      for (const f of files) {
+        const raw = await readFile(join(CREW_DIR, f), "utf-8");
+        const existing = JSON.parse(raw);
+        if (existing.id === parsed.id) {
+          res.writeHead(409, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: `Crew id '${parsed.id}' already exists` }));
+          return;
+        }
+      }
+
+      // Determine next file number
+      const numPrefix = files.length > 0
+        ? String(Math.max(...files.map(f => parseInt(f.split("-")[0]) || 0)) + 1).padStart(2, "0")
+        : "00";
+      const filename = `${numPrefix}-${parsed.id}.json`;
+      await writeFile(join(CREW_DIR, filename), JSON.stringify(parsed, null, 4), "utf-8");
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, filename, crew: parsed }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // PUT /api/crew/:id — update crew member
+  const crewPutMatch = req.method === "PUT" && req.url?.match(/^\/api\/crew\/([\w.-]+)$/);
+  if (crewPutMatch) {
+    const crewId = crewPutMatch[1];
+    const body = await readBody(req);
+    let parsed;
+    try { parsed = JSON.parse(body); } catch { res.writeHead(400); res.end("Invalid JSON"); return; }
+
+    try {
+      const files = await listCrewFiles();
+      let targetFile = null;
+      for (const f of files) {
+        const raw = await readFile(join(CREW_DIR, f), "utf-8");
+        const existing = JSON.parse(raw);
+        if (existing.id === crewId) { targetFile = f; break; }
+      }
+      if (!targetFile) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Crew not found" }));
+        return;
+      }
+      // Ensure id is not changed
+      parsed.id = crewId;
+      await writeFile(join(CREW_DIR, targetFile), JSON.stringify(parsed, null, 4), "utf-8");
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, crew: parsed }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // DELETE /api/crew/:id — delete crew member
+  const crewDeleteMatch = req.method === "DELETE" && req.url?.match(/^\/api\/crew\/([\w.-]+)$/);
+  if (crewDeleteMatch) {
+    const crewId = crewDeleteMatch[1];
+    try {
+      const files = await listCrewFiles();
+      let targetFile = null;
+      for (const f of files) {
+        const raw = await readFile(join(CREW_DIR, f), "utf-8");
+        const existing = JSON.parse(raw);
+        if (existing.id === crewId) { targetFile = f; break; }
+      }
+      if (!targetFile) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Crew not found" }));
+        return;
+      }
+      const { unlink } = await import("fs/promises");
+      await unlink(join(CREW_DIR, targetFile));
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // ── End Crew CRUD endpoints ──
+
   // ── Conversation endpoints ──
 
   // GET /api/conversations/:employeeId — list conversations

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /**
  * AI Software Factory — UI Portal (Preview Demo)
@@ -34,7 +34,7 @@ import { Card, RiskBadge, CodeBlock, SidebarSection, NavItem } from "./component
 import { AppCategory, PortalApp, Skill, RunStatus, Run, FlowSpec, Runbook, IncidentBundle, DataContract, Risk } from "./types";
 import { ThemeProvider, useTheme, THEMES } from "./theme";
 import { nowIso, fmtTime, cn, shortId, safeJsonParse, randId, badgeClasses, statusClasses } from "./utils";
-import { APPS, SKILLS, FLOWS, RUNBOOKS, INCIDENTS, DATA_CONTRACTS } from "./data/mockData";
+import { APPS, FLOWS, RUNBOOKS, INCIDENTS, DATA_CONTRACTS } from "./data/mockData";
 
 
 
@@ -54,6 +54,23 @@ function AppInner() {
   const [openTabs, setOpenTabs] = useState<string[]>(["home"]);
   const [instanceCounter, setInstanceCounter] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Dynamic crew data (loaded from API)
+  const [crew, setCrew] = useState<Skill[]>([]);
+  const loadCrew = useCallback(async () => {
+    try {
+      const resp = await fetch("http://127.0.0.1:4097/api/crew");
+      if (resp.ok) {
+        const data = await resp.json();
+        setCrew(data);
+      }
+    } catch { /* fallback to empty */ }
+  }, []);
+
+  useEffect(() => { loadCrew(); }, [loadCrew]);
+
+  // Legacy alias for compatibility
+  const SKILLS = crew;
 
   const openApp = (id: string) => {
     setOpenTabs((prev) => {
@@ -286,7 +303,8 @@ function AppInner() {
 
     const runbookGap = INCIDENTS.some((i) => i.summary.toLowerCase().includes("runbook missing"));
     if (runbookGap) {
-      const runbookMaker = SKILLS.find((s) => s.id === "ai.runbook")!;
+      const runbookMaker = SKILLS.find((s) => s.id === "ai.runbook");
+      if (runbookMaker) {
       next.push({
         id: "sug.q4",
         title: "Close runbook gaps (RunbookMedic)",
@@ -294,9 +312,11 @@ function AppInner() {
         cta: { label: "Run RunbookMedic", action: () => { void runSkill(runbookMaker); } },
         risk: "safe",
       });
+      }
     }
 
-    const codegen = SKILLS.find((s) => s.id === "ai.unit")!;
+    const codegen = SKILLS.find((s) => s.id === "ai.unit");
+    if (codegen) {
     next.push({
       id: "sug.codegen",
       title: "Generate tests from spec (UnitSmith)",
@@ -304,8 +324,10 @@ function AppInner() {
       cta: { label: "Run UnitSmith", action: () => { void runSkill(codegen); } },
       risk: "safe",
     });
+    }
 
-    const gatekeeper = SKILLS.find((s) => s.id === "ai.gatekeeper")!;
+    const gatekeeper = SKILLS.find((s) => s.id === "ai.gatekeeper");
+    if (gatekeeper) {
     next.push({
       id: "sug.pr",
       title: "Prepare PR (OutboundGate)",
@@ -313,9 +335,10 @@ function AppInner() {
       cta: { label: "Ask Gatekeeper", action: () => { void runSkill(gatekeeper); } },
       risk: "external",
     });
+    }
 
     return next.slice(0, 5);
-  }, [runs, todayIncidentCounts.P1, todayIncidentCounts.P2, todayIncidentCounts.P3]);
+  }, [runs, todayIncidentCounts.P1, todayIncidentCounts.P2, todayIncidentCounts.P3, crew]);
 
   const renderTab = (tabId: string) => {
     if (tabId === "home") return <OperationsCenter
@@ -337,8 +360,8 @@ function AppInner() {
     }
     if (tabId === "factory.manifesto") return <FactoryDocument file="constitution" headerIcon="📜" headerTitle="Constitution" headerSub="工廠意法 — 核心原則與價值" />;
     if (tabId === "factory.standards") return <FactoryDocument file="standards" headerIcon="📐" headerTitle="Standards" headerSub="工程標準與規範" />;
-    if (tabId === "factory.crew") return <AICrew runSkill={runSkill} openApp={openApp} openEmployee={openEmployee} />;
-    if (tabId === "exec.skills") return <AICrew runSkill={runSkill} openApp={openApp} openEmployee={openEmployee} />;
+    if (tabId === "factory.crew") return <AICrew openEmployee={openEmployee} onCrewChanged={loadCrew} />;
+    if (tabId === "exec.skills") return <AICrew openEmployee={openEmployee} onCrewChanged={loadCrew} />;
     if (tabId === "exec.gates") return <Gates runSkill={runSkill} />;
     if (tabId === "mon.report") return <Monitoring runSkill={runSkill} />;
     if (tabId === "inv.rca") return <Rca selectedIncidentId={selectedIncidentId} setSelectedIncidentId={setSelectedIncidentId} runSkill={runSkill} />;
@@ -347,7 +370,7 @@ function AppInner() {
       const employeeId = empPart.slice(9);
       return <EmployeeWorkspace employeeId={employeeId} />;
     }
-    return <AICrew runSkill={runSkill} openApp={openApp} openEmployee={openEmployee} />;
+    return <AICrew openEmployee={openEmployee} onCrewChanged={loadCrew} />;
   };
 
   const { info: themeInfo, theme, setTheme } = useTheme();
