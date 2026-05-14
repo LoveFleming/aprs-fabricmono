@@ -195,21 +195,21 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                         </div>
                         {/* Right column — skills + actions, right 40% */}
                         <div className="flex-[2] py-3 pr-4 pl-2 flex flex-col justify-center gap-2 min-w-0">
-                            {/* Skills — two rows max */}
-                            <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Skills</div>
+                            {/* Skills */}
+                            <div className="text-xs font-bold text-stone-500 mb-1">Skills</div>
                             <div className="flex flex-wrap gap-1.5">
                                 {allSkills.map(sk => (
                                     <button
                                         key={sk.id}
                                         onClick={() => setEnabledSkills(prev => ({ ...prev, [sk.id]: !prev[sk.id] }))}
                                         className={cn(
-                                            "text-[11px] font-medium px-2.5 py-1 rounded-full border transition-all flex items-center gap-1 whitespace-nowrap",
+                                            "text-sm font-medium px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 whitespace-nowrap",
                                             enabledSkills[sk.id]
                                                 ? "bg-blue-500 text-white border-blue-500 shadow-sm"
                                                 : "bg-white text-stone-500 border-stone-200 hover:border-blue-300"
                                         )}
                                     >
-                                        {enabledSkills[sk.id] ? <Icon name="check" size={9} /> : null}
+                                        {enabledSkills[sk.id] ? <Icon name="check" size={12} /> : null}
                                         {sk.name}
                                     </button>
                                 ))}
@@ -218,15 +218,15 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                             <div className="flex gap-2 mt-1">
                                 <button
                                     onClick={() => setShowPromptPreview(!showPromptPreview)}
-                                    className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-stone-200 text-stone-600 hover:border-blue-300 hover:text-blue-600 transition-colors flex items-center justify-center gap-1"
+                                    className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-white border border-stone-200 text-stone-600 hover:border-blue-300 hover:text-blue-600 transition-colors flex items-center justify-center gap-1.5"
                                 >
-                                    <Icon name="document" size={12} /> 提示詞
+                                    <Icon name="document" size={14} /> 提示詞
                                 </button>
                                 <button
                                     onClick={() => { setConsoleKey(prev => prev + 1); setChatStarted(true); }}
-                                    className="flex-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center justify-center gap-1"
+                                    className="flex-1 px-3 py-2 rounded-lg text-sm font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center justify-center gap-1.5"
                                 >
-                                    <Icon name="rocket" size={12} /> 開始
+                                    <Icon name="rocket" size={14} /> 開始
                                 </button>
                             </div>
                         </div>
