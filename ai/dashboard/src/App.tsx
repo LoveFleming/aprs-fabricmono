@@ -29,6 +29,7 @@ import Gates from "./pages/Gates";
 import Monitoring from "./pages/Monitoring";
 import Rca from "./pages/Rca";
 import EmployeeWorkspace from "./pages/EmployeeWorkspace";
+import EmployeeWorkspaceV2 from "./pages/EmployeeWorkspaceV2";
 import FactoryStandards from "./pages/FactoryStandards";
 
 import { Card, RiskBadge, CodeBlock, SidebarSection, NavItem } from "./components/ui/shared";
@@ -369,7 +370,9 @@ function AppInner() {
     if (tabId.startsWith("employee.")) {
       const [empPart] = tabId.split("#");
       const employeeId = empPart.slice(9);
-      return <EmployeeWorkspace employeeId={employeeId} />;
+      return employeeId === "ai.guide"
+        ? <EmployeeWorkspaceV2 employeeId={employeeId} />
+        : <EmployeeWorkspace employeeId={employeeId} />;
     }
     return <AICrew openEmployee={openEmployee} onCrewChanged={loadCrew} />;
   };
