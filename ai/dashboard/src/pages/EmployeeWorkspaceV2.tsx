@@ -147,6 +147,12 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
         { label: "完成任務", value: "8", icon: "check" as const, color: "text-emerald-500" },
     ];
 
+    const quickActions = [
+        { label: "建立新任務", icon: "plus" as const, desc: "開一個新的 CLI session" },
+        { label: "建立新 Skill", icon: "lightning" as const, desc: "擴充員工能力" },
+        { label: "匯出對話紀錄", icon: "save" as const, desc: "存成 Markdown" },
+    ];
+
     if (!employee) return <div className="p-8 text-stone-400">Employee not found</div>;
 
     const allSkills = employee.skills || [];
@@ -370,6 +376,27 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                                 </div>
                                 <span className="text-[10px] text-stone-500">{s.label}</span>
                             </div>
+                        ))}
+                    </div>
+                </Card>
+
+                {/* Quick Actions */}
+                <Card className="p-3 border border-stone-100 shadow-sm">
+                    <h3 className="font-bold text-stone-700 text-sm mb-2">快速操作</h3>
+                    <div className="space-y-1.5">
+                        {quickActions.map(a => (
+                            <button
+                                key={a.label}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors text-left group"
+                            >
+                                <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
+                                    <Icon name={a.icon} size={14} className="text-blue-500" />
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-xs font-medium text-stone-700">{a.label}</div>
+                                    <div className="text-[10px] text-stone-400">{a.desc}</div>
+                                </div>
+                            </button>
                         ))}
                     </div>
                 </Card>
