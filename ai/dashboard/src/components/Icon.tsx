@@ -45,9 +45,12 @@ const PATHS: Record<string, { path: string; viewBox?: string; fill?: boolean; st
     keyboard:  { path: "M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" },
 
     // Nature (theme icons)
-    sun:       { path: "M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" },
-    "cloud-sun": { path: "M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" },
-    wave:      { path: "M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" },
+    // Theme icons — colorful filled SVGs
+    sun:       { path: "THEME_SUN", fill: true, stroke: false, color: "#FBBF24" },
+    "cloud-sun": { path: "THEME_CLOUD_SUN", fill: true, stroke: false, color: "#60A5FA" },
+    "calm-anger": { path: "THEM_CALM_ANGER", fill: true, stroke: false, color: "#A78BFA" },
+    "calm-anxiety": { path: "THEME_CALM_ANXIETY", fill: true, stroke: false, color: "#6EE7B7" },
+    "calm-resignation": { path: "THEME_CALM_RESIGNATION", fill: true, stroke: false, color: "#FB923C" },
 
     // CLI brand dots (solid circles)
     "dot-purple": { path: "M12 12m-8 0a8 8 0 1016 0 8 8 0 00-16 0z", viewBox: "0 0 24 24", fill: true, stroke: false, color: "#8B5CF6" },
@@ -69,11 +72,80 @@ interface IconProps {
     style?: React.CSSProperties;
 }
 
+// Colorful theme icon SVGs (inline JSX for gradient fills)
+const THEME_ICONS: Record<string, (size: number) => React.ReactElement> = {
+    THEME_SUN: (s) => (
+        <svg width={s} height={s} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><radialGradient id="sunGrad" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#FDE68A" /><stop offset="60%" stopColor="#FBBF24" /><stop offset="100%" stopColor="#F59E0B" /></radialGradient></defs>
+            <circle cx="24" cy="24" r="10" fill="url(#sunGrad)" />
+            {[0,45,90,135,180,225,270,315].map(a => {
+                const rad = a * Math.PI / 180;
+                const x1 = 24 + Math.cos(rad) * 13; const y1 = 24 + Math.sin(rad) * 13;
+                const x2 = 24 + Math.cos(rad) * 18; const y2 = 24 + Math.sin(rad) * 18;
+                return <line key={a} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#FBBF24" strokeWidth={2.5} strokeLinecap="round" />;
+            })}
+        </svg>
+    ),
+    THEME_CLOUD_SUN: (s) => (
+        <svg width={s} height={s} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><radialGradient id="csSun" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#FDE68A" /><stop offset="100%" stopColor="#FBBF24" /></radialGradient></defs>
+            <circle cx="34" cy="16" r="7" fill="url(#csSun)" />
+            {[0,60,120,180,240,300].map(a => {
+                const rad = a * Math.PI / 180;
+                const x1 = 34 + Math.cos(rad) * 9; const y1 = 16 + Math.sin(rad) * 9;
+                const x2 = 34 + Math.cos(rad) * 12; const y2 = 16 + Math.sin(rad) * 12;
+                return <line key={a} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#FBBF24" strokeWidth={2} strokeLinecap="round" />;
+            })}
+            <path d="M8 32a8 8 0 0113.5-5.8A6 6 0 0130 30h2a5 5 0 010 10H12a7 7 0 01-4-8z" fill="#93C5FD" />
+            <path d="M10 34a6 6 0 0110-4.4A4.5 4.5 0 0128 32h1.5a3.5 3.5 0 010 7H14a5 5 0 01-4-5z" fill="#BFDBFE" />
+        </svg>
+    ),
+    THEM_CALM_ANGER: (s) => (
+        <svg width={s} height={s} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><radialGradient id="lavGrad" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#DDD6FE" /><stop offset="50%" stopColor="#C4B5FD" /><stop offset="100%" stopColor="#8B5CF6" /></radialGradient></defs>
+            <circle cx="24" cy="24" r="20" fill="url(#lavGrad)" />
+            {/* Lotus flower — symbol of calm */}
+            {[0,60,120,180,240,300].map((a, i) => {
+                const rad = a * Math.PI / 180;
+                const cx = 24 + Math.cos(rad) * 6;
+                const cy = 24 + Math.sin(rad) * 6;
+                return <ellipse key={i} cx={cx} cy={cy} rx="5" ry="9" transform={`rotate(${a} ${cx} ${cy})`} fill="#DDD6FE" opacity="0.8" />;
+            })}
+            <circle cx="24" cy="24" r="4" fill="#7C3AED" />
+        </svg>
+    ),
+    THEME_CALM_ANXIETY: (s) => (
+        <svg width={s} height={s} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><radialGradient id="sageGrad" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#D1FAE5" /><stop offset="50%" stopColor="#6EE7B7" /><stop offset="100%" stopColor="#059669" /></radialGradient></defs>
+            <circle cx="24" cy="24" r="20" fill="url(#sageGrad)" />
+            {/* Leaf — nature, grounding */}
+            <path d="M24 10c0 0-12 8-12 18c0 6 5 10 12 10c7 0 12-4 12-10C36 18 24 10 24 10z" fill="#34D399" opacity="0.9" />
+            <path d="M24 14v18M24 20l-5 4M24 24l5 4M24 28l-4 3" stroke="#059669" strokeWidth={1.5} strokeLinecap="round" />
+        </svg>
+    ),
+    THEME_CALM_RESIGNATION: (s) => (
+        <svg width={s} height={s} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><radialGradient id="coralGrad" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#FED7AA" /><stop offset="50%" stopColor="#FB923C" /><stop offset="100%" stopColor="#EA580C" /></radialGradient></defs>
+            <circle cx="24" cy="24" r="20" fill="url(#coralGrad)" />
+            {/* Warm heart — comfort, embrace */}
+            <path d="M24 36s-12-7.5-12-15c0-4 3-7 6.5-7c2.5 0 4.5 1.5 5.5 3.5c1-2 3-3.5 5.5-3.5c3.5 0 6.5 3 6.5 7C36 28.5 24 36 24 36z" fill="#FDBA74" opacity="0.9" />
+            <path d="M24 32s-8-5-8-10c0-2.5 2-4.5 4-4.5c1.5 0 3 1 4 2.5c1-1.5 2.5-2.5 4-2.5c2 0 4 2 4 4.5C32 27 24 32 24 32z" fill="#FED7AA" opacity="0.8" />
+        </svg>
+    ),
+};
+
 export default function Icon({ name, size = 16, className = "", style }: IconProps) {
+    // Check for colorful theme icons first
     const icon = PATHS[name];
     if (!icon) {
         // Fallback: render as text if unknown
         return <span className={className} style={{ fontSize: size, lineHeight: 1, ...style }}>{name}</span>;
+    }
+
+    // If it's a theme icon, render the colorful version
+    const themeRenderer = THEME_ICONS[icon.path];
+    if (themeRenderer) {
+        return <span className={`inline-block shrink-0 ${className}`} style={{ verticalAlign: "middle", ...style }}>{themeRenderer(size)}</span>;
     }
 
     const vb = icon.viewBox || "0 0 24 24";

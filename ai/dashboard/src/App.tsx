@@ -33,7 +33,7 @@ import FactoryStandards from "./pages/FactoryStandards";
 
 import { Card, RiskBadge, CodeBlock, SidebarSection, NavItem } from "./components/ui/shared";
 import { AppCategory, PortalApp, Skill, RunStatus, Run, FlowSpec, Runbook, IncidentBundle, DataContract, Risk } from "./types";
-import { ThemeProvider, useTheme, THEMES } from "./theme";
+import { ThemeProvider, useTheme, THEMES, ThemeId } from "./theme";
 import { nowIso, fmtTime, cn, shortId, safeJsonParse, randId, badgeClasses, statusClasses } from "./utils";
 import { APPS, FLOWS, RUNBOOKS, INCIDENTS, DATA_CONTRACTS } from "./data/mockData";
 
@@ -392,7 +392,7 @@ function AppInner() {
         </div>
         {/* Theme switcher */}
         <div className="flex items-center gap-1">
-          {(["sunny", "sky", "cyan"] as const).map(id => (
+          {(Object.keys(THEMES) as ThemeId[]).map(id => (
             <button
               key={id}
               onClick={() => setTheme(id)}
@@ -400,9 +400,9 @@ function AppInner() {
                 "w-7 h-7 rounded-full text-sm flex items-center justify-center transition-all",
                 theme === id ? "bg-white/30 ring-2 ring-white" : "hover:bg-white/20"
               )}
-              title={THEMES[id].label}
+              title={THEMES[id].label + (THEMES[id].desc ? ' — ' + THEMES[id].desc : '')}
             >
-              <Icon name={THEMES[id].emoji} size={16} />
+              <Icon name={THEMES[id].icon} size={20} />
             </button>
           ))}
         </div>
