@@ -122,11 +122,11 @@ export default function AICrew({ openEmployee, onCrewChanged }: AICrewProps) {
                                 "border-orange-100 hover:border-orange-300"
                             )}
                         >
-                            <div className="h-48 w-full relative overflow-hidden shrink-0 flex items-center justify-center p-1">
+                            <div className="h-48 w-full bg-orange-50/50 relative overflow-hidden shrink-0 flex items-center justify-center p-2">
                                 <img
                                     src={s.imageUrl}
                                     alt={s.title}
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 drop-shadow-sm"
+                                    className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110 drop-shadow-sm"
                                     onError={(e) => {
                                         (e.target as HTMLImageElement).style.display = 'none';
                                     }}
