@@ -122,7 +122,7 @@ export default function AICrew({ openEmployee, onCrewChanged }: AICrewProps) {
                                 "border-orange-100 hover:border-orange-300"
                             )}
                         >
-                            <div className="h-32 w-full bg-orange-50/50 relative overflow-hidden shrink-0 flex items-center justify-center p-2">
+                            <div className="h-48 w-full bg-orange-50/50 relative overflow-hidden shrink-0 flex items-center justify-center p-2">
                                 <img
                                     src={s.imageUrl}
                                     alt={s.title}

@@ -379,7 +379,7 @@ function AppInner() {
   return (
     <div className="h-screen flex flex-col bg-orange-50/40 text-stone-800 font-sans selection:bg-amber-200 overflow-hidden">
       {/* Top Header */}
-      <header className="h-14 flex items-center justify-between bg-orange-500 px-4 shrink-0 z-10">
+      <header className="h-14 flex items-center justify-between px-4 shrink-0 z-10" style={{ background: themeInfo.gradient }}>
         <div className="flex items-center gap-4">
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 -ml-2 rounded-full text-white/80 hover:bg-white/20 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">

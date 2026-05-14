@@ -417,7 +417,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
             <Card className="flex-none overflow-y-auto p-4">
                 <div className="flex gap-6 items-start">
                     {/* Left: Employee Photo */}
-                    <div className="w-32 h-32 shrink-0 rounded-2xl overflow-hidden bg-orange-50/50 border border-orange-100 flex items-center justify-center p-3 shadow-sm">
+                    <div className="w-48 h-48 shrink-0 rounded-2xl overflow-hidden bg-orange-50/50 border border-orange-100 flex items-center justify-center p-3 shadow-sm">
                         <img
                             src={employee.imageUrl}
                             alt={employee.title}
