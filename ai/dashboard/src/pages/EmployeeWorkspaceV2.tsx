@@ -263,14 +263,14 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                 </Card>
 
                 {/* --- CLI Console --- */}
-                <Card className="flex-1 min-h-[280px] sm:min-h-[400px] flex flex-col border border-stone-200 shadow-sm overflow-hidden">
+                <Card className="flex-1 min-h-[280px] sm:min-h-[400px] flex flex-col border border-blue-100/60 shadow-sm overflow-hidden">
                     {/* Console header */}
-                    <div className="flex items-center justify-between px-2 sm:px-4 py-2 border-b border-stone-100 bg-stone-50/50 gap-2">
+                    <div className="flex items-center justify-between px-2 sm:px-4 py-2 border-b border-blue-50 bg-blue-50/40 gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                             <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
                                 <span className="text-white text-[10px] font-black">O</span>
                             </div>
-                            <span className="font-bold text-stone-700 text-sm truncate">
+                            <span className="font-bold text-blue-900 text-sm truncate">
                                 {effectiveCli === 'claude' ? 'Claude Code' : effectiveCli === 'opencode' ? 'OpenCode' : 'Qwen'} CLI
                             </span>
                         </div>
@@ -278,7 +278,7 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                             <select
                                 value={permissionMode}
                                 onChange={e => setPermissionMode(e.target.value)}
-                                className="px-1.5 py-1 rounded-lg border border-stone-200 text-[11px] text-stone-500 bg-white"
+                                className="px-1.5 py-1 rounded-lg border border-blue-100 text-[11px] text-blue-700 bg-white"
                                 title="Approval Mode"
                             >
                                 <option value="default">Default</option>
@@ -289,7 +289,7 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                             <select
                                 value={selectedCli}
                                 onChange={e => setSelectedCli(e.target.value)}
-                                className="px-1.5 py-1 rounded-lg border border-stone-200 text-[11px] text-stone-500 bg-white"
+                                className="px-1.5 py-1 rounded-lg border border-blue-100 text-[11px] text-blue-700 bg-white"
                                 title="CLI Engine"
                             >
                                 {Object.entries(installedClis).map(([key, info]: [string, any]) => (
@@ -302,7 +302,7 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                                 <select
                                     value={selectedModel}
                                     onChange={e => setSelectedModel(e.target.value)}
-                                    className="hidden sm:block px-1.5 py-1 rounded-lg border border-stone-200 text-[11px] text-stone-500 bg-white max-w-[140px] truncate"
+                                    className="hidden sm:block px-1.5 py-1 rounded-lg border border-blue-100 text-[11px] text-blue-700 bg-white max-w-[140px] truncate"
                                 >
                                     {models.map(m => (
                                         <option key={m.id} value={m.id}>
@@ -313,7 +313,7 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                             )}
                             <button
                                 onClick={() => setShowPromptPreview(!showPromptPreview)}
-                                className="hidden sm:flex px-2 py-1 rounded-lg border border-stone-200 text-[11px] text-stone-500 hover:bg-stone-100 transition-colors items-center gap-1"
+                                className="hidden sm:flex px-2 py-1 rounded-lg border border-blue-100 text-[11px] text-blue-600 hover:bg-blue-50 transition-colors items-center gap-1"
                             >
                                 <Icon name="document" size={11} /> Prompt
                             </button>
@@ -321,7 +321,7 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                     </div>
 
                     {/* Console tabs */}
-                    <div className="flex border-b border-stone-100 px-2 sm:px-4">
+                    <div className="flex border-b border-blue-50 px-2 sm:px-4">
                         {(["console", "logs", "preview"] as const).map(tab => (
                             <button
                                 key={tab}
@@ -330,7 +330,7 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                                     "px-2.5 sm:px-3 py-1.5 text-xs font-medium transition-colors border-b-2 -mb-px",
                                     cliTab === tab
                                         ? "border-blue-500 text-blue-600"
-                                        : "border-transparent text-stone-400 hover:text-stone-600"
+                                        : "border-transparent text-blue-300 hover:text-blue-500"
                                 )}
                             >
                                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -354,7 +354,7 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                                 ].filter(Boolean).join('\n\n') : undefined}
                             />
                         ) : cliTab === "logs" ? (
-                            <div className="h-full flex items-center justify-center text-stone-400 text-sm bg-stone-900">
+                            <div className="h-full flex items-center justify-center text-blue-300 text-sm bg-slate-900">
                                 <div className="text-center">
                                     <Icon name="document" size={24} className="mx-auto mb-2 opacity-30" />
                                     <p>Logs will appear here</p>
@@ -362,11 +362,11 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                             </div>
                         ) : (
                             showPromptPreview && systemPrompt ? (
-                                <div className="h-full overflow-auto p-4 bg-stone-50">
-                                    <pre className="text-xs text-stone-600 whitespace-pre-wrap font-mono">{systemPrompt}</pre>
+                                <div className="h-full overflow-auto p-4 bg-blue-50/30">
+                                    <pre className="text-xs text-slate-600 whitespace-pre-wrap font-mono">{systemPrompt}</pre>
                                 </div>
                             ) : (
-                                <div className="h-full flex items-center justify-center text-stone-400 text-sm bg-stone-50">
+                                <div className="h-full flex items-center justify-center text-blue-300 text-sm bg-blue-50/30">
                                     <div className="text-center">
                                         <Icon name="document" size={24} className="mx-auto mb-2 opacity-30" />
                                         <p>Start a task to preview prompt</p>
@@ -379,28 +379,28 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
             </div>
 
             {/* ===== Right Sidebar ===== */}
-            <div className="w-full lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l border-stone-100 bg-white/80 overflow-y-auto p-2 sm:p-3 flex flex-col gap-2 sm:gap-2.5 max-h-[260px] lg:max-h-none">
+            <div className="w-full lg:w-72 shrink-0 border-t lg:border-t-0 lg:border-l border-blue-50 bg-white/80 overflow-y-auto p-2 sm:p-3 flex flex-col gap-2 sm:gap-2.5 max-h-[260px] lg:max-h-none">
 
                 {/* Overview Stats */}
-                <Card className="p-2 sm:p-3 border border-stone-100 shadow-sm">
-                    <h3 className="font-bold text-stone-700 text-sm mb-0.5">概覽</h3>
-                    <p className="text-[10px] text-stone-400 mb-2">今日工作概要</p>
+                <Card className="p-2 sm:p-3 border border-blue-50 shadow-sm">
+                    <h3 className="font-bold text-blue-900 text-sm mb-0.5">概覽</h3>
+                    <p className="text-[10px] text-blue-300 mb-2">今日工作概要</p>
                     <div className="grid grid-cols-2 gap-2">
                         {stats.map(s => (
-                            <div key={s.label} className="bg-stone-50 rounded-xl p-2 sm:p-3 text-center">
+                            <div key={s.label} className="bg-blue-50/50 rounded-xl p-2 sm:p-3 text-center">
                                 <div className="flex items-center justify-center gap-1 mb-1">
                                     <Icon name={s.icon} size={12} className={s.color} />
-                                    <span className="text-lg font-bold text-stone-800">{s.value}</span>
+                                    <span className="text-lg font-bold text-blue-900">{s.value}</span>
                                 </div>
-                                <span className="text-[10px] text-stone-500">{s.label}</span>
+                                <span className="text-[10px] text-blue-400">{s.label}</span>
                             </div>
                         ))}
                     </div>
                 </Card>
 
                 {/* Quick Actions */}
-                <Card className="p-2 sm:p-3 border border-stone-100 shadow-sm">
-                    <h3 className="font-bold text-stone-700 text-sm mb-2">快速操作</h3>
+                <Card className="p-2 sm:p-3 border border-blue-50 shadow-sm">
+                    <h3 className="font-bold text-blue-900 text-sm mb-2">快速操作</h3>
                     <div className="flex flex-row lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible">
                         {quickActions.map(a => (
                             <button
@@ -411,42 +411,42 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                                     <Icon name={a.icon} size={14} className="text-blue-500" />
                                 </div>
                                 <div className="min-w-0 hidden sm:block">
-                                    <div className="text-xs font-medium text-stone-700">{a.label}</div>
-                                    <div className="text-[10px] text-stone-400">{a.desc}</div>
+                                    <div className="text-xs font-medium text-blue-800">{a.label}</div>
+                                    <div className="text-[10px] text-blue-400">{a.desc}</div>
                                 </div>
-                                <span className="text-xs font-medium text-stone-700 sm:hidden">{a.label}</span>
+                                <span className="text-xs font-medium text-blue-800 sm:hidden">{a.label}</span>
                             </button>
                         ))}
                     </div>
                 </Card>
 
                 {/* Recent Conversations */}
-                <Card className="p-2 sm:p-3 border border-stone-100 shadow-sm flex-1">
+                <Card className="p-2 sm:p-3 border border-blue-50 shadow-sm flex-1">
                     <div className="flex items-center justify-between mb-1.5">
-                        <h3 className="font-bold text-stone-700 text-sm">最近對話</h3>
+                        <h3 className="font-bold text-blue-900 text-sm">最近對話</h3>
                         <span className="text-[10px] text-blue-500 cursor-pointer hover:text-blue-700">查看全部</span>
                     </div>
                     {conversations.length === 0 ? (
                         <div className="space-y-1.5">
-                            <div className="flex items-center justify-between py-1.5 border-b border-stone-50">
-                                <span className="text-xs text-stone-500 truncate">如何建立新的微服務？</span>
-                                <span className="text-[10px] text-stone-300 ml-2">10:15</span>
+                            <div className="flex items-center justify-between py-1.5 border-b border-blue-50">
+                                <span className="text-xs text-blue-700/60 truncate">如何建立新的微服務？</span>
+                                <span className="text-[10px] text-blue-300 ml-2">10:15</span>
                             </div>
-                            <div className="flex items-center justify-between py-1.5 border-b border-stone-50">
-                                <span className="text-xs text-stone-500 truncate">工廠的部署流程是什麼？</span>
-                                <span className="text-[10px] text-stone-300 ml-2">昨天</span>
+                            <div className="flex items-center justify-between py-1.5 border-b border-blue-50">
+                                <span className="text-xs text-blue-700/60 truncate">工廠的部署流程是什麼？</span>
+                                <span className="text-[10px] text-blue-300 ml-2">昨天</span>
                             </div>
                             <div className="flex items-center justify-between py-1.5">
-                                <span className="text-xs text-stone-500 truncate">如何設定權限與角色？</span>
-                                <span className="text-[10px] text-stone-300 ml-2">昨天</span>
+                                <span className="text-xs text-blue-700/60 truncate">如何設定權限與角色？</span>
+                                <span className="text-[10px] text-blue-300 ml-2">昨天</span>
                             </div>
                         </div>
                     ) : (
                         <div className="space-y-1.5">
                             {conversations.slice(0, 3).map(c => (
-                                <div key={c.id} className="flex items-center justify-between py-1.5 border-b border-stone-50 last:border-0">
-                                    <span className="text-xs text-stone-500 truncate flex-1">{c.title}</span>
-                                    <span className="text-[10px] text-stone-300 shrink-0 ml-2">
+                                <div key={c.id} className="flex items-center justify-between py-1.5 border-b border-blue-50 last:border-0">
+                                    <span className="text-xs text-blue-700/60 truncate flex-1">{c.title}</span>
+                                    <span className="text-[10px] text-blue-300 shrink-0 ml-2">
                                         {new Date(c.updatedAt).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })}
                                     </span>
                                 </div>
