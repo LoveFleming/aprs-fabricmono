@@ -167,13 +167,13 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
 
                 {/* --- Profile Banner --- */}
                 <Card className="overflow-hidden border border-blue-100 shadow-sm">
-                    <div className="flex bg-gradient-to-r from-blue-50 via-white to-indigo-50">
-                        {/* Photo */}
-                        <div className="w-36 h-36 shrink-0 flex items-center justify-center p-2">
+                    <div className="flex bg-gradient-to-r from-blue-50 via-white to-indigo-50 min-h-[200px]">
+                        {/* Photo — large, spans full banner height */}
+                        <div className="w-52 shrink-0 flex items-center justify-center p-3">
                             <img
                                 src={employee.imageUrl}
                                 alt={employee.title}
-                                className="w-full h-full object-contain rounded-xl drop-shadow-md"
+                                className="w-full h-full object-contain drop-shadow-lg"
                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                         </div>
