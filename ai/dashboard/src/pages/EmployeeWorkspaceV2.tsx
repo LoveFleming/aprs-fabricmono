@@ -194,37 +194,45 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                             </div>
                         </div>
                         {/* Right column — skills + actions, right 40% */}
-                        <div className="flex-[2] py-3 pr-4 pl-2 flex flex-col justify-center gap-2 min-w-0">
-                            {/* Skills */}
-                            <div className="text-xs font-bold text-stone-500 mb-1">Skills</div>
-                            <div className="flex flex-wrap gap-1.5">
-                                {allSkills.map(sk => (
-                                    <button
-                                        key={sk.id}
-                                        onClick={() => setEnabledSkills(prev => ({ ...prev, [sk.id]: !prev[sk.id] }))}
-                                        className={cn(
-                                            "text-sm font-medium px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 whitespace-nowrap",
-                                            enabledSkills[sk.id]
-                                                ? "bg-blue-500 text-white border-blue-500 shadow-sm"
-                                                : "bg-white text-stone-500 border-stone-200 hover:border-blue-300"
-                                        )}
-                                    >
-                                        {enabledSkills[sk.id] ? <Icon name="check" size={12} /> : null}
-                                        {sk.name}
-                                    </button>
-                                ))}
+                        <div className="flex-[2] py-3 pr-4 pl-3 flex flex-col justify-center gap-2.5 min-w-0">
+                            {/* Skills — card style with icon */}
+                            <div className="bg-white/70 rounded-xl p-3 border border-blue-100">
+                                <div className="flex items-center gap-1.5 mb-2">
+                                    <div className="w-6 h-6 rounded-lg bg-blue-500 flex items-center justify-center">
+                                        <Icon name="lightning" size={12} className="text-white" />
+                                    </div>
+                                    <span className="text-sm font-bold text-stone-700">Skills</span>
+                                    <span className="text-[10px] text-stone-400 ml-auto">{selectedSkillIds.length}/{allSkills.length} 已選</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {allSkills.map(sk => (
+                                        <button
+                                            key={sk.id}
+                                            onClick={() => setEnabledSkills(prev => ({ ...prev, [sk.id]: !prev[sk.id] }))}
+                                            className={cn(
+                                                "text-sm font-medium px-3 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 whitespace-nowrap",
+                                                enabledSkills[sk.id]
+                                                    ? "bg-blue-500 text-white border-blue-500 shadow-sm shadow-blue-200"
+                                                    : "bg-white text-stone-600 border-stone-200 hover:border-blue-400 hover:bg-blue-50"
+                                            )}
+                                        >
+                                            <Icon name={enabledSkills[sk.id] ? "check" : "gear"} size={12} />
+                                            {sk.name}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                             {/* Action buttons */}
-                            <div className="flex gap-2 mt-1">
+                            <div className="flex gap-2">
                                 <button
                                     onClick={() => setShowPromptPreview(!showPromptPreview)}
-                                    className="flex-1 px-3 py-2 rounded-lg text-sm font-medium bg-white border border-stone-200 text-stone-600 hover:border-blue-300 hover:text-blue-600 transition-colors flex items-center justify-center gap-1.5"
+                                    className="flex-1 px-3 py-2 rounded-xl text-sm font-medium bg-white border border-stone-200 text-stone-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                                 >
                                     <Icon name="document" size={14} /> 提示詞
                                 </button>
                                 <button
                                     onClick={() => { setConsoleKey(prev => prev + 1); setChatStarted(true); }}
-                                    className="flex-1 px-3 py-2 rounded-lg text-sm font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center justify-center gap-1.5"
+                                    className="flex-1 px-3 py-2 rounded-xl text-sm font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center justify-center gap-1.5 shadow-sm shadow-blue-200"
                                 >
                                     <Icon name="rocket" size={14} /> 開始
                                 </button>
