@@ -163,13 +163,13 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
     return (
         <div className="flex h-full overflow-hidden">
             {/* ===== Main Content (left ~65%) ===== */}
-            <div className="flex-1 flex flex-col overflow-y-auto p-6 gap-5 min-w-0">
+            <div className="flex-1 flex flex-col overflow-y-auto p-3 gap-2.5 min-w-0">
 
                 {/* --- Profile Banner --- */}
                 <Card className="overflow-hidden border border-blue-100 shadow-sm">
                     <div className="flex bg-gradient-to-r from-blue-50 via-white to-indigo-50">
                         {/* Photo */}
-                        <div className="w-44 h-44 shrink-0 flex items-center justify-center p-3">
+                        <div className="w-36 h-36 shrink-0 flex items-center justify-center p-2">
                             <img
                                 src={employee.imageUrl}
                                 alt={employee.title}
@@ -178,7 +178,7 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                             />
                         </div>
                         {/* Info */}
-                        <div className="flex-1 py-5 pr-5 flex flex-col justify-center min-w-0">
+                        <div className="flex-1 py-3 pr-4 flex flex-col justify-center min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                                 <span className="text-2xl font-bold text-stone-800">{employee.codename || employee.title}</span>
                                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">AI 員工</span>
@@ -220,7 +220,7 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                 </Card>
 
                 {/* --- Assign Task --- */}
-                <Card className="p-4 border border-stone-200 shadow-sm">
+                <Card className="p-3 border border-stone-200 shadow-sm">
                     <div className="flex items-center gap-2 mb-2">
                         <Icon name="clipboard" size={16} className="text-blue-500" />
                         <span className="font-bold text-stone-700">指派任務給 {employee.codename?.split(" ")[0] || employee.title}</span>
@@ -257,7 +257,7 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                 </Card>
 
                 {/* --- CLI Console --- */}
-                <Card className="flex-1 min-h-[300px] flex flex-col border border-stone-200 shadow-sm overflow-hidden">
+                <Card className="flex-1 min-h-[260px] flex flex-col border border-stone-200 shadow-sm overflow-hidden">
                     {/* Console header */}
                     <div className="flex items-center justify-between px-4 py-2.5 border-b border-stone-100 bg-stone-50/50">
                         <div className="flex items-center gap-2">
@@ -379,12 +379,12 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
             </div>
 
             {/* ===== Right Sidebar (~30%) ===== */}
-            <div className="w-80 shrink-0 border-l border-stone-100 bg-white/80 overflow-y-auto p-4 space-y-4">
+            <div className="w-72 shrink-0 border-l border-stone-100 bg-white/80 overflow-y-auto p-3 space-y-2.5">
 
                 {/* Overview Stats */}
-                <Card className="p-4 border border-stone-100 shadow-sm">
+                <Card className="p-3 border border-stone-100 shadow-sm">
                     <h3 className="font-bold text-stone-700 text-sm mb-0.5">概覽</h3>
-                    <p className="text-[10px] text-stone-400 mb-3">今日工作概要</p>
+                    <p className="text-[10px] text-stone-400 mb-2">今日工作概要</p>
                     <div className="grid grid-cols-2 gap-2">
                         {stats.map(s => (
                             <div key={s.label} className="bg-stone-50 rounded-xl p-3 text-center">
@@ -399,8 +399,8 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                 </Card>
 
                 {/* Quick Actions */}
-                <Card className="p-4 border border-stone-100 shadow-sm">
-                    <h3 className="font-bold text-stone-700 text-sm mb-2">快速操作</h3>
+                <Card className="p-3 border border-stone-100 shadow-sm">
+                    <h3 className="font-bold text-stone-700 text-sm mb-1.5">快速操作</h3>
                     <div className="space-y-1">
                         {quickActions.map(a => (
                             <button
@@ -416,8 +416,8 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                 </Card>
 
                 {/* Recent Conversations */}
-                <Card className="p-4 border border-stone-100 shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
+                <Card className="p-3 border border-stone-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-1.5">
                         <h3 className="font-bold text-stone-700 text-sm">最近對話</h3>
                         <span className="text-[10px] text-blue-500 cursor-pointer hover:text-blue-700">查看全部</span>
                     </div>
@@ -451,7 +451,7 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                 </Card>
 
                 {/* Quote */}
-                <Card className="p-5 border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm relative overflow-hidden">
+                <Card className="p-4 border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm relative overflow-hidden">
                     <div className="absolute top-2 right-3 text-5xl text-blue-200/40 font-serif">"</div>
                     <p className="text-sm text-stone-600 italic leading-relaxed relative z-10">
                         導入創新，萬機皆服務，萬事皆連結。
