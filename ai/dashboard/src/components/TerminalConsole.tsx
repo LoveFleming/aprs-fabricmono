@@ -50,19 +50,30 @@ export default function TerminalConsole({
     }, []);
 
     // Send text char-by-char then Enter (for textarea mode)
+    // For multi-line text, use bracketed paste to preserve newlines
     const sendInput = useCallback((text: string) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-        let i = 0;
-        const typeChar = () => {
-            if (i < text.length && wsRef.current?.readyState === WebSocket.OPEN) {
-                wsRef.current.send(JSON.stringify({ type: "input", text: text[i] }));
-                i++;
-                setTimeout(typeChar, 30);
-            } else if (i >= text.length) {
-                setTimeout(() => sendToPty("\r"), 50);
-            }
-        };
-        typeChar();
+
+        if (text.includes("\n")) {
+            // Bracketed paste: tells the CLI this is pasted text, not typed input
+            // Newlines will be preserved instead of interpreted as Enter
+            sendToPty("\x1b[200~"); // bracketed paste start
+            sendToPty(text);
+            sendToPty("\x1b[201~"); // bracketed paste end
+            setTimeout(() => sendToPty("\r"), 100);
+        } else {
+            let i = 0;
+            const typeChar = () => {
+                if (i < text.length && wsRef.current?.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(JSON.stringify({ type: "input", text: text[i] }));
+                    i++;
+                    setTimeout(typeChar, 30);
+                } else if (i >= text.length) {
+                    setTimeout(() => sendToPty("\r"), 50);
+                }
+            };
+            typeChar();
+        }
     }, [sendToPty]);
 
     // Init terminal + WS + PTY (once on mount)
