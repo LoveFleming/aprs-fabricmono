@@ -219,45 +219,8 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                     </div>
                 </Card>
 
-                {/* --- Assign Task --- */}
-                <Card className="p-3 border border-stone-200 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Icon name="clipboard" size={16} className="text-blue-500" />
-                        <span className="font-bold text-stone-700">指派任務給 {employee.codename?.split(" ")[0] || employee.title}</span>
-                    </div>
-                    <p className="text-xs text-stone-400 mb-3">描述任務需求，或讓她提供任務協助執行</p>
-                    <div className="flex gap-2">
-                        <textarea
-                            value={taskInput}
-                            onChange={e => setTaskInput(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="請描述您需要協助的內容，例如：「幫我建立使用者驗證？」"
-                            className="flex-1 px-3 py-2.5 border border-stone-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 min-h-[44px] max-h-[120px]"
-                            rows={2}
-                        />
-                        <button
-                            onClick={handleStartTask}
-                            disabled={!taskInput.trim()}
-                            className="px-5 py-2.5 rounded-xl text-sm font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0 flex items-center gap-1.5 self-end"
-                        >
-                            <Icon name="rocket" size={14} /> 開始
-                        </button>
-                    </div>
-                    <div className="flex gap-2 mt-2">
-                        <button className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">
-                            <Icon name="document" size={12} /> 上傳檔案
-                        </button>
-                        <button className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">
-                            <Icon name="folder" size={12} /> 從文件
-                        </button>
-                        <button className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">
-                            <Icon name="clipboard" size={12} /> 插入模板
-                        </button>
-                    </div>
-                </Card>
-
                 {/* --- CLI Console --- */}
-                <Card className="flex-1 min-h-[260px] flex flex-col border border-stone-200 shadow-sm overflow-hidden">
+                <Card className="flex-1 min-h-[400px] flex flex-col border border-stone-200 shadow-sm overflow-hidden">
                     {/* Console header */}
                     <div className="flex items-center justify-between px-4 py-2.5 border-b border-stone-100 bg-stone-50/50">
                         <div className="flex items-center gap-2">
