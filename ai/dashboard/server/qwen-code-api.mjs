@@ -209,13 +209,14 @@ const server = createServer(async (req, res) => {
     const crewId = crewGetMatch[1];
     try {
       const files = await listCrewFiles();
-      const target = files.find(f => {
+      let target = null;
+      for (const f of files) {
         try {
           const raw = await readFile(join(CREW_DIR, f), "utf-8");
           const data = JSON.parse(raw);
-          return data.id === crewId;
-        } catch { return false; }
-      });
+          if (data.id === crewId) { target = f; break; }
+        } catch { /* skip */ }
+      }
       if (!target) {
         res.writeHead(404, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Crew not found" }));
