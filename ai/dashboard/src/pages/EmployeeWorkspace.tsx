@@ -522,7 +522,7 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                 <Card className="flex-1 min-h-0 flex flex-col overflow-hidden p-0 border-0 bg-transparent shadow-none">
                     <TerminalConsole
                         key={`terminal-${consoleKey}`}
-                        cwd="/Users/steward/App/aprs-fabricmono"
+                        cwd={undefined}
                         model={selectedModel || undefined}
                         approvalMode={permissionMode}
                         systemPrompt={systemPrompt || undefined}

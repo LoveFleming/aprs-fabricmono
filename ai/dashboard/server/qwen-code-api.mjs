@@ -419,15 +419,17 @@ function spawnQwenMac(ptySpawn, opts) {
   // Try Homebrew paths
   const qwenBin = process.env.QWEN_BIN || "/opt/homebrew/bin/qwen";
 
+  const resolvedCwd = cwd || process.env.QWEN_CWD || resolve(DASHBOARD_ROOT, "../../");
+
   const ptyOpts = {
     name: "xterm-256color",
     cols: 120,
     rows: 30,
-    cwd: cwd || resolve(process.cwd(), "../../"),
+    cwd: resolvedCwd,
     env: { ...process.env },
   };
 
-  console.log(`[PTY:Mac] Spawning: ${qwenBin} ${args.join(" ")} (cwd: ${cwd || "default"})`);
+  console.log(`[PTY:Mac] Spawning: ${qwenBin} ${args.join(" ")} (cwd: ${resolvedCwd})`);
   return ptySpawn(qwenBin, args, ptyOpts);
 }
 
@@ -446,15 +448,17 @@ function spawnQwenLinux(ptySpawn, opts) {
   // Linux: use PATH-resolved 'qwen', or override via env var
   const qwenBin = process.env.QWEN_BIN || "qwen";
 
+  const resolvedCwd = cwd || process.env.QWEN_CWD || resolve(DASHBOARD_ROOT, "../../");
+
   const ptyOpts = {
     name: "xterm-256color",
     cols: 120,
     rows: 30,
-    cwd: cwd || resolve(process.cwd(), "../../"),
+    cwd: resolvedCwd,
     env: { ...process.env },
   };
 
-  console.log(`[PTY:Linux] Spawning: ${qwenBin} ${args.join(" ")} (cwd: ${cwd || "default"})`);
+  console.log(`[PTY:Linux] Spawning: ${qwenBin} ${args.join(" ")} (cwd: ${resolvedCwd})`);
   return ptySpawn(qwenBin, args, ptyOpts);
 }
 
@@ -475,15 +479,17 @@ function spawnQwenWindows(ptySpawn, opts) {
   // If that fails, set QWEN_BIN env var to full path
   const qwenBin = process.env.QWEN_BIN || "qwen.cmd";
 
+  const resolvedCwd = cwd || process.env.QWEN_CWD || resolve(DASHBOARD_ROOT, "../../");
+
   const ptyOpts = {
     name: "xterm-256color",
     cols: 120,
     rows: 30,
-    cwd: cwd || resolve(process.cwd(), "../../"),
+    cwd: resolvedCwd,
     env: { ...process.env },
   };
 
-  console.log(`[PTY:Windows] Spawning: ${qwenBin} ${args.join(" ")} (cwd: ${cwd || "default"})`);
+  console.log(`[PTY:Windows] Spawning: ${qwenBin} ${args.join(" ")} (cwd: ${resolvedCwd})`);
   return ptySpawn(qwenBin, args, ptyOpts);
 }
 
