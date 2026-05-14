@@ -177,8 +177,8 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                         </div>
-                        {/* Info */}
-                        <div className="flex-1 py-3 pr-4 flex flex-col justify-center min-w-0">
+                        {/* Info — left column */}
+                        <div className="flex-1 py-3 pr-2 flex flex-col justify-center min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                                 <span className="text-2xl font-bold text-stone-800">{employee.codename || employee.title}</span>
                                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">AI 員工</span>
@@ -187,33 +187,47 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                                 <Icon name="gear" size={14} className="text-blue-500" />
                                 <span className="font-medium">{employee.title}</span>
                             </div>
-                            <p className="text-sm text-stone-500 mb-3 line-clamp-2">{employee.rolePrompt?.split("。")[0]}</p>
-
-                            {/* Skill tags */}
-                            <div className="flex flex-wrap gap-2 mb-3">
-                                {allSkills.slice(0, 3).map(sk => (
+                            <p className="text-sm text-stone-500 mb-2 line-clamp-2">{employee.rolePrompt?.split("。")[0]}</p>
+                            <div className="flex items-center gap-1.5 text-xs">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                <span className="text-emerald-600 font-medium">在線上 · 隨時準備協助您</span>
+                            </div>
+                        </div>
+                        {/* Right column — skills + actions */}
+                        <div className="w-56 shrink-0 py-3 pr-4 flex flex-col justify-center gap-2 border-l border-blue-100/50">
+                            {/* Skills */}
+                            <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Skills</div>
+                            <div className="flex flex-wrap gap-1.5">
+                                {allSkills.map(sk => (
                                     <button
                                         key={sk.id}
                                         onClick={() => setEnabledSkills(prev => ({ ...prev, [sk.id]: !prev[sk.id] }))}
                                         className={cn(
-                                            "text-xs font-medium px-3 py-1.5 rounded-full border transition-all flex items-center gap-1",
+                                            "text-[11px] font-medium px-2.5 py-1 rounded-full border transition-all flex items-center gap-1",
                                             enabledSkills[sk.id]
                                                 ? "bg-blue-500 text-white border-blue-500 shadow-sm"
-                                                : "bg-white text-stone-600 border-stone-200 hover:border-blue-300"
+                                                : "bg-white text-stone-500 border-stone-200 hover:border-blue-300"
                                         )}
                                     >
-                                        {enabledSkills[sk.id] ? <Icon name="check" size={10} /> : null}
+                                        {enabledSkills[sk.id] ? <Icon name="check" size={9} /> : null}
                                         {sk.name}
                                     </button>
                                 ))}
-                                {allSkills.length > 3 && (
-                                    <span className="text-xs text-stone-400 self-center">+{allSkills.length - 3} more</span>
-                                )}
                             </div>
-
-                            <div className="flex items-center gap-1.5 text-xs">
-                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                                <span className="text-emerald-600 font-medium">在線上 · 隨時準備協助您</span>
+                            {/* Action buttons */}
+                            <div className="flex gap-2 mt-1">
+                                <button
+                                    onClick={() => setShowPromptPreview(!showPromptPreview)}
+                                    className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-white border border-stone-200 text-stone-600 hover:border-blue-300 hover:text-blue-600 transition-colors flex items-center justify-center gap-1"
+                                >
+                                    <Icon name="document" size={12} /> 提示詞
+                                </button>
+                                <button
+                                    onClick={() => { setConsoleKey(prev => prev + 1); setChatStarted(true); }}
+                                    className="flex-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center justify-center gap-1"
+                                >
+                                    <Icon name="rocket" size={12} /> 開始
+                                </button>
                             </div>
                         </div>
                     </div>
