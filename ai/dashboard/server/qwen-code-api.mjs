@@ -10,12 +10,13 @@
  */
 
 import { createServer } from "http";
-import { readdir, readFile, writeFile, mkdir } from "fs/promises";
+import { readdir, readFile, writeFile, mkdir, unlink } from "fs/promises";
 import { join, resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { query, isSDKAssistantMessage, isSDKResultMessage, isSDKPartialAssistantMessage } from "@qwen-code/sdk";
 import { WebSocketServer } from "ws";
 import { spawn as ptySpawn } from "node-pty";
+import { tmpdir } from "os";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -570,27 +571,22 @@ const ptySessions = new Map(); // ws -> { pty, id }
  * Binary path: /opt/homebrew/bin/qwen (Apple Silicon) or /usr/local/bin/qwen (Intel)
  */
 function spawnQwenMac(ptySpawn, opts) {
-  const { cwd, model, approvalMode, systemPrompt } = opts;
+  const { cwd, model, approvalMode } = opts;
   const args = [];
   if (model) args.push("-m", model);
   if (approvalMode === "yolo") args.push("-y");
   else if (approvalMode) args.push("--approval-mode", approvalMode);
-  if (systemPrompt) args.push("--system-prompt", systemPrompt);
+  // Note: systemPrompt is NOT passed as CLI arg (long strings with newlines unreliable)
+  // Instead, it will be sent via bracketed paste after CLI is ready
 
-  // Try Homebrew paths
   const qwenBin = process.env.QWEN_BIN || "/opt/homebrew/bin/qwen";
-
-  const resolvedCwd = cwd || process.env.QWEN_CWD || resolve(DASHBOARD_ROOT, "../../");
-
+  const resolvedCwd = cwd || process.env.QWEN_CWD || resolve(DATA_ROOT, "../../");
   const ptyOpts = {
-    name: "xterm-256color",
-    cols: 120,
-    rows: 30,
+    name: "xterm-256color", cols: 120, rows: 30,
     cwd: resolvedCwd,
     env: { ...process.env },
   };
-
-  console.log(`[PTY:Mac] Spawning: ${qwenBin} ${args.join(" ")} (cwd: ${resolvedCwd})`);
+  console.log(`[PTY:Mac] Spawning: ${qwenBin} (cwd: ${resolvedCwd})`);
   return ptySpawn(qwenBin, args, ptyOpts);
 }
 
@@ -599,27 +595,20 @@ function spawnQwenMac(ptySpawn, opts) {
  * Uses PATH to find qwen binary
  */
 function spawnQwenLinux(ptySpawn, opts) {
-  const { cwd, model, approvalMode, systemPrompt } = opts;
+  const { cwd, model, approvalMode } = opts;
   const args = [];
   if (model) args.push("-m", model);
   if (approvalMode === "yolo") args.push("-y");
   else if (approvalMode) args.push("--approval-mode", approvalMode);
-  if (systemPrompt) args.push("--system-prompt", systemPrompt);
 
-  // Linux: use PATH-resolved 'qwen', or override via env var
   const qwenBin = process.env.QWEN_BIN || "qwen";
-
-  const resolvedCwd = cwd || process.env.QWEN_CWD || resolve(DASHBOARD_ROOT, "../../");
-
+  const resolvedCwd = cwd || process.env.QWEN_CWD || resolve(DATA_ROOT, "../../");
   const ptyOpts = {
-    name: "xterm-256color",
-    cols: 120,
-    rows: 30,
+    name: "xterm-256color", cols: 120, rows: 30,
     cwd: resolvedCwd,
     env: { ...process.env },
   };
-
-  console.log(`[PTY:Linux] Spawning: ${qwenBin} ${args.join(" ")} (cwd: ${resolvedCwd})`);
+  console.log(`[PTY:Linux] Spawning: ${qwenBin} (cwd: ${resolvedCwd})`);
   return ptySpawn(qwenBin, args, ptyOpts);
 }
 
@@ -629,18 +618,22 @@ function spawnQwenLinux(ptySpawn, opts) {
  * node-pty on Windows uses ConPTY
  */
 function spawnQwenWindows(ptySpawn, opts) {
-  const { cwd, model, approvalMode, systemPrompt } = opts;
+  const { cwd, model, approvalMode } = opts;
   const args = [];
   if (model) args.push("-m", model);
   if (approvalMode === "yolo") args.push("-y");
   else if (approvalMode) args.push("--approval-mode", approvalMode);
-  if (systemPrompt) args.push("--system-prompt", systemPrompt);
 
-  // Windows: qwen.cmd is found via PATH
-  // If that fails, set QWEN_BIN env var to full path
   const qwenBin = process.env.QWEN_BIN || "qwen.cmd";
-
-  const resolvedCwd = cwd || process.env.QWEN_CWD || resolve(DASHBOARD_ROOT, "../../");
+  const resolvedCwd = cwd || process.env.QWEN_CWD || resolve(DATA_ROOT, "../../");
+  const ptyOpts = {
+    name: "xterm-256color", cols: 120, rows: 30,
+    cwd: resolvedCwd,
+    env: { ...process.env },
+  };
+  console.log(`[PTY:Windows] Spawning: ${qwenBin} (cwd: ${resolvedCwd})`);
+  return ptySpawn(qwenBin, args, ptyOpts);
+}
 
   const ptyOpts = {
     name: "xterm-256color",

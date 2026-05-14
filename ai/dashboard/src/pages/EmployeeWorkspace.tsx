@@ -525,8 +525,11 @@ export default function EmployeeWorkspace({ employeeId }: EmployeeWorkspaceProps
                         cwd={undefined}
                         model={selectedModel || undefined}
                         approvalMode={permissionMode}
-                        systemPrompt={systemPrompt || undefined}
-                        initialPrompt={chatStarted && Object.keys(formData).length > 0 ? buildInitialMessage(allRequiredInputs, formData, selectedSkillIds) : undefined}
+                        systemPrompt={undefined}
+                        initialPrompt={chatStarted ? [
+                            systemPrompt ? `# System Instructions\n${systemPrompt}` : '',
+                            Object.keys(formData).length > 0 ? buildInitialMessage(allRequiredInputs, formData, selectedSkillIds) : '',
+                        ].filter(Boolean).join('\n\n') : undefined}
                     />
                 </Card>
             ) : (
