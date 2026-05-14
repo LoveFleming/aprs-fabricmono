@@ -1,3 +1,4 @@
+import Icon from "../components/Icon";
 import React, { useState, useMemo } from "react";
 import { ORCHESTRATORS } from "../data/mockOrchestrators";
 import { badgeClasses, cn } from "../utils";
@@ -119,7 +120,7 @@ export default function OrchestratorOverview({ openApp }: { openApp: (id: string
                 
                 {grouped.size === 0 && (
                     <div className="text-center py-24 bg-white rounded-xl border border-zinc-200">
-                        <div className="text-zinc-400 mb-2 text-4xl">📭</div>
+                        <div className="text-zinc-400 mb-2"><Icon name="inbox" size={40} /></div>
                         <div className="text-zinc-500 font-medium">No orchestrators found matching your filters.</div>
                     </div>
                 )}

@@ -1,3 +1,4 @@
+import Icon from "../components/Icon";
 import React, { useState } from "react";
 import errorCodeRules from "../data/factory-standards/error-code-rules-v1.json";
 import factoryManifesto from "../data/factory-standards/factory-manifesto.json";
@@ -153,7 +154,7 @@ function ErrorCodeDetail({ section }: { section: StandardSection }) {
         ))}
         {typeof s.note === "string" && (
           <div className="mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
-            ⚠️ {s.note}
+            <Icon name="warning" size={14} className="inline text-amber-500" /> {s.note}
           </div>
         )}
       </div>
@@ -219,7 +220,7 @@ function ErrorCodeDetail({ section }: { section: StandardSection }) {
       <ul className="mt-3 space-y-1.5">
         {rules.map((rule, i) => (
           <li key={i} className="flex items-start gap-2 text-xs text-zinc-700">
-            <span className="text-blue-500 mt-0.5">✓</span>
+            <span className="text-blue-500 mt-0.5"><Icon name="check" size={14} /></span>
             {rule}
           </li>
         ))}
@@ -234,7 +235,7 @@ function ErrorCodeDetail({ section }: { section: StandardSection }) {
       <ul className="mt-3 space-y-1.5">
         {principles.map((p, i) => (
           <li key={i} className="flex items-start gap-2 text-xs text-zinc-700">
-            <span className="text-amber-500 mt-0.5">★</span>
+            <span className="text-amber-500 mt-0.5"><Icon name="star" size={14} /></span>
             {p}
           </li>
         ))}
@@ -323,7 +324,7 @@ export default function FactoryStandards({ initialTab }: { initialTab?: string }
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <span className="text-2xl">📋</span>
+            <span className="text-2xl"><Icon name="clipboard" size={24} /></span>
             <h1 className="text-xl font-bold text-zinc-800">Factory</h1>
           </div>
           <p className="text-sm text-zinc-500 ml-10">
@@ -360,7 +361,7 @@ export default function FactoryStandards({ initialTab }: { initialTab?: string }
 
             {/* Info box */}
             <div className="mt-4 p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
-              <div className="text-xs font-medium text-zinc-500 mb-1">📌 About this space</div>
+              <div className="text-xs font-medium text-zinc-500 mb-1 flex items-center gap-1"><Icon name="pin" size={12} /> About this space</div>
               <p className="text-xs text-zinc-400 leading-relaxed">
                 這裡收集軟體工廠的所有靜態規範文件。AI 員工在執行任務時可參考這些規則，
                 人類工程師也可以在這裡查閱最新標準。

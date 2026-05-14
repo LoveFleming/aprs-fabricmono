@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Icon from "../components/Icon";
 
 interface Slide {
     title: string;
@@ -12,7 +13,7 @@ interface Props {
     headerSub?: string;
 }
 
-export default function FactoryDocument({ file, headerIcon = "📄", headerTitle, headerSub }: Props) {
+export default function FactoryDocument({ file, headerIcon = "document", headerTitle, headerSub }: Props) {
     const [content, setContent] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -34,7 +35,7 @@ export default function FactoryDocument({ file, headerIcon = "📄", headerTitle
         <div className="h-full overflow-y-auto">
             <div className="max-w-5xl mx-auto py-8 px-6">
                 <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-stone-800">{headerIcon} {headerTitle || file}</h1>
+                    <h1 className="text-2xl font-bold text-stone-800 flex items-center gap-2"><Icon name={headerIcon} size={24} /> {headerTitle || file}</h1>
                     {headerSub && <p className="text-sm text-stone-400 mt-1">{headerSub}</p>}
                 </div>
 
@@ -47,7 +48,7 @@ export default function FactoryDocument({ file, headerIcon = "📄", headerTitle
 
                 {!loading && content === null && (
                     <div className="text-center py-20 text-zinc-400">
-                        <div className="text-4xl mb-3">📂</div>
+                        <div className="text-4xl mb-3"><Icon name="folder" size={40} /></div>
                         <p className="text-sm"><code className="bg-amber-50 px-1.5 py-0.5 rounded text-xs">ai/data/factory/{file}.md</code> not found</p>
                     </div>
                 )}

@@ -10,9 +10,9 @@ interface ThemeInfo {
 }
 
 export const THEMES: Record<ThemeId, ThemeInfo> = {
-    sunny: { id: "sunny", label: "陽光", emoji: "☀️", headerLabel: "☀️ My Factory" },
-    sky:   { id: "sky",   label: "天藍", emoji: "🌤️", headerLabel: "🌤️ My Factory" },
-    cyan:  { id: "cyan",  label: "青色", emoji: "🌊",  headerLabel: "🌊 My Factory" },
+    sunny: { id: "sunny", label: "陽光", emoji: "sun", headerLabel: "My Factory" },
+    sky:   { id: "sky",   label: "天藍", emoji: "cloud-sun", headerLabel: "My Factory" },
+    cyan:  { id: "cyan",  label: "青色", emoji: "wave",  headerLabel: "My Factory" },
 };
 
 interface ThemeContextType {

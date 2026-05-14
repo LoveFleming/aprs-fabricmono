@@ -1,3 +1,4 @@
+import Icon from "../components/Icon";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Card, cn } from "../components/ui/shared";
 import { Skill } from "../types";
@@ -37,7 +38,7 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
                 className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors"
             >
                 <span className="text-[10px]">{expanded ? "▼" : "▶"}</span>
-                <span>🧠 Thinking {expanded ? "(hide)" : `— ${preview}`}</span>
+                <span className="flex items-center gap-1"><Icon name="brain" size={12} /> Thinking {expanded ? "(hide)" : `— ${preview}`}</span>
             </button>
             {expanded && (
                 <pre className="mt-1.5 text-xs text-stone-500 whitespace-pre-wrap font-mono leading-relaxed">
@@ -483,7 +484,7 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                                         ? "text-zinc-500 font-bold shrink-0"
                                         : "text-[#ffbd2e] font-bold shrink-0"
                             }>
-                                {msg.role === "user" ? "USER" : msg.role === "system" ? "SYS" : "AGENT"}➜
+                                {msg.role === "user" ? "USER" : msg.role === "system" ? "SYS" : "AGENT"}<Icon name="arrow" size={10} />
                             </span>
                             {msg.role === "assistant" && msg.text === "" && !msg.thinking ? null : (
                                 <span className="whitespace-pre-wrap">{msg.text}</span>
@@ -499,17 +500,17 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                                 </>
                             ) : messages.some(m => m.role === "assistant" && !m.text && !m.thinking) || messages.length === 0 ? (
                                 <>
-                                    <span className="text-amber-400">🧠</span>
+                                    <span className="text-amber-400"><Icon name="brain" size={14} /></span>
                                     <span className="text-amber-300 text-xs animate-pulse">Thinking...</span>
                                 </>
                             ) : messages.some(m => m.role === "assistant" && m.thinking && !m.text) ? (
                                 <>
-                                    <span className="text-amber-400">💭</span>
+                                    <span className="text-amber-400"><Icon name="thinking" size={14} /></span>
                                     <span className="text-amber-300 text-xs animate-pulse">Reasoning... (thinking output available)</span>
                                 </>
                             ) : (
                                 <>
-                                    <span className="text-green-400">⚙️</span>
+                                    <span className="text-green-400"><Icon name="gear" size={14} /></span>
                                     <span className="text-green-300 text-xs animate-pulse">Working...</span>
                                 </>
                             )}
@@ -524,7 +525,7 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                 {activeApproval && (
                     <div className="shrink-0 border-t border-amber-700/50 bg-amber-950/30 px-4 py-3">
                         <div className="flex items-start gap-3">
-                            <span className="text-amber-400 text-lg">⚠️</span>
+                            <span className="text-amber-400 text-lg"><Icon name="warning" size={18} /></span>
                             <div className="flex-1 min-w-0">
                                 <div className="text-sm font-bold text-amber-300 mb-1">Approval Required</div>
                                 <div className="text-xs text-stone-400 mb-1">Tool: <span className="text-amber-200 font-mono">{activeApproval.toolName}</span></div>
@@ -534,13 +535,13 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                                         onClick={() => handleApproval(true)}
                                         className="px-4 py-1.5 rounded-lg text-xs font-bold bg-green-800/60 text-green-300 border border-green-600 hover:bg-green-700/70 transition-colors"
                                     >
-                                        ✅ Allow
+                                        <Icon name="success" size={14} /> Allow
                                     </button>
                                     <button
                                         onClick={() => handleApproval(false)}
                                         className="px-4 py-1.5 rounded-lg text-xs font-bold bg-red-900/50 text-red-300 border border-red-700 hover:bg-red-800/60 transition-colors"
                                     >
-                                        ❌ Deny
+                                        <Icon name="cross" size={14} /> Deny
                                     </button>
                                 </div>
                             </div>
@@ -548,7 +549,7 @@ export default function AgentConsole({ selectedEmployee, systemPrompt, initialMe
                     </div>
                 )}
                 <div className="flex items-end gap-2 border-t border-stone-700 pt-4 shrink-0">
-                    <span className="text-green-400 mt-1">➜</span>
+                    <span className="text-green-400 mt-1"><Icon name="arrow" size={12} /></span>
                     <textarea
                         value={input}
                         onChange={(e) => {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Card, RiskBadge, cn } from "../components/ui/shared";
 import { Skill } from "../types";
 import CrewEditor from "../components/CrewEditor";
+import Icon from "../components/Icon";
 
 interface AICrewProps {
     openEmployee: (employeeId: string) => void;
@@ -97,7 +98,7 @@ export default function AICrew({ openEmployee, onCrewChanged }: AICrewProps) {
                     onClick={handleAdd}
                     className="px-4 py-2 rounded-xl text-sm font-bold bg-orange-500 text-white border border-orange-600 hover:bg-orange-600 transition-colors shadow-sm"
                 >
-                    ➕ 新增員工
+                    <Icon name="plus" size={14} /> 新增員工
                 </button>
             </div>
 
@@ -111,7 +112,7 @@ export default function AICrew({ openEmployee, onCrewChanged }: AICrewProps) {
                             className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded-lg text-[10px] font-bold bg-white/90 text-stone-600 border border-stone-300 shadow-sm hover:bg-stone-100"
                             title="編輯員工"
                         >
-                            ✏️ 編輯
+                            <Icon name="edit" size={12} /> 編輯
                         </button>
 
                         <button
@@ -146,7 +147,7 @@ export default function AICrew({ openEmployee, onCrewChanged }: AICrewProps) {
                                                 ? "bg-orange-100 text-orange-700"
                                                 : "bg-zinc-100 text-zinc-400"
                                         )}>
-                                            {sk.enabled ? '✓' : '○'} {sk.name}
+                                            {sk.enabled ? <Icon name="check" size={10} className="text-emerald-500" /> : <span className="text-stone-300">\u25CB</span>} {sk.name}
                                         </span>
                                     ))}
                                     {s.skills.length > 3 && (

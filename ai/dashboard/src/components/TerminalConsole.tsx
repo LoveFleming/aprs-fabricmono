@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
+import Icon from "./Icon";
 
 interface TerminalConsoleProps {
     cwd?: string;
@@ -315,7 +316,7 @@ export default function TerminalConsole({
                 {!directMode ? (
                     /* Textarea input mode */
                     <div className="flex items-end gap-2">
-                        <span className="text-green-400 mt-1 text-sm shrink-0">➜</span>
+                        <span className="text-green-400 mt-1 text-sm shrink-0"><Icon name="arrow" size={12} /></span>
                         <textarea
                             ref={inputRef}
                             value={input}
@@ -374,7 +375,7 @@ export default function TerminalConsole({
                             className="px-2 py-1 rounded text-[10px] font-bold bg-stone-800 text-stone-400 border border-stone-600 hover:bg-stone-700 hover:text-stone-200 transition-colors"
                             title={directMode ? "Switch to textarea input" : "Switch to direct terminal input"}
                         >
-                            {directMode ? "📝 Textarea" : "⌨️ Direct"}
+                            {directMode ? <><Icon name="document" size={12} /> Textarea</> : <><Icon name="keyboard" size={12} /> Direct</>}
                         </button>
                         {/* Stop: interrupt current LLM response (Ctrl+C) */}
                         <button
@@ -400,7 +401,7 @@ export default function TerminalConsole({
                             className="px-2 py-1 rounded text-[10px] font-bold bg-stone-800 text-stone-400 border border-stone-600 hover:bg-stone-700 hover:text-stone-200 transition-colors"
                             title="Kill and restart session"
                         >
-                            🔄 Restart
+                            <Icon name="restart" size={14} /> Restart
                         </button>
                     </div>
                 </div>

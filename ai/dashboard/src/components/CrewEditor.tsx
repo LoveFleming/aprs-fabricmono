@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Skill, CrewSkill, RequiredInput, Risk } from "../types";
 import CrewAvatar from "./CrewAvatar";
+import Icon, { CliIcon, ApprovalIcon } from "./Icon";
 
 interface CrewEditorProps {
     crew?: Skill | null;       // null = create new, Skill = edit existing
@@ -164,7 +165,7 @@ export default function CrewEditor({ crew, onSave, onDelete, onCancel }: CrewEdi
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200">
                     <h2 className="text-xl font-bold text-stone-800">
-                        {isEdit ? "✏️ 編輯員工" : "➕ 新增員工"}
+                        {isEdit ? <><Icon name="edit" size={14} /> 編輯員工</> : <><Icon name="plus" size={14} /> 新增員工</>}
                     </h2>
                     <button onClick={onCancel} className="text-stone-400 hover:text-stone-600 text-2xl leading-none">&times;</button>
                 </div>
@@ -186,7 +187,7 @@ export default function CrewEditor({ crew, onSave, onDelete, onCancel }: CrewEdi
 
                     {/* Basic Info */}
                     <fieldset className="space-y-3">
-                        <legend className="text-sm font-bold text-stone-600 border-b border-stone-200 pb-1 w-full">📋 基本資料</legend>
+                        <legend className="text-sm font-bold text-stone-600 border-b border-stone-200 pb-1 w-full flex items-center gap-1.5"><Icon name="clipboard" size={16} /> 基本資料</legend>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="text-xs font-semibold text-stone-500">ID *</label>
@@ -240,7 +241,7 @@ export default function CrewEditor({ crew, onSave, onDelete, onCancel }: CrewEdi
 
                     {/* Role Prompt */}
                     <fieldset className="space-y-3">
-                        <legend className="text-sm font-bold text-stone-600 border-b border-stone-200 pb-1 w-full">🧠 Role Prompt *</legend>
+                        <legend className="text-sm font-bold text-stone-600 border-b border-stone-200 pb-1 w-full flex items-center gap-1.5"><Icon name="brain" size={16} /> Role Prompt *</legend>
                         <textarea value={rolePrompt} onChange={e => setRolePrompt(e.target.value)} rows={5}
                             className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm font-mono"
                             placeholder="你是半導體工廠的...，名叫...。你的工作是..." />
@@ -248,7 +249,7 @@ export default function CrewEditor({ crew, onSave, onDelete, onCancel }: CrewEdi
 
                     {/* Chat Config */}
                     <fieldset className="space-y-3">
-                        <legend className="text-sm font-bold text-stone-600 border-b border-stone-200 pb-1 w-full">💬 Chat Config</legend>
+                        <legend className="text-sm font-bold text-stone-600 border-b border-stone-200 pb-1 w-full flex items-center gap-1.5"><Icon name="chat" size={16} /> Chat Config</legend>
                         <div>
                             <label className="text-xs font-semibold text-stone-500">Greeting Message</label>
                             <input value={greeting} onChange={e => setGreeting(e.target.value)}
@@ -272,7 +273,7 @@ export default function CrewEditor({ crew, onSave, onDelete, onCancel }: CrewEdi
                     {/* Skills */}
                     <fieldset className="space-y-4">
                         <div className="flex items-center justify-between border-b border-stone-200 pb-1">
-                            <legend className="text-sm font-bold text-stone-600">⚡ Skills ({skills.length})</legend>
+                            <legend className="text-sm font-bold text-stone-600 flex items-center gap-1.5"><Icon name="lightning" size={16} /> Skills ({skills.length})</legend>
                             <button type="button" onClick={addSkill}
                                 className="px-3 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-200 transition-colors">
                                 + Add Skill
@@ -290,7 +291,7 @@ export default function CrewEditor({ crew, onSave, onDelete, onCancel }: CrewEdi
                                 <div className="flex items-center justify-between">
                                     <span className="text-xs font-bold text-stone-500">Skill #{skIdx + 1}</span>
                                     <button type="button" onClick={() => removeSkill(skIdx)}
-                                        className="text-xs text-red-400 hover:text-red-600 font-bold">✕ Remove</button>
+                                        className="text-xs text-red-400 hover:text-red-600 font-bold flex items-center gap-0.5"><Icon name="cross" size={10} /> Remove</button>
                                 </div>
                                 <div className="grid grid-cols-3 gap-3">
                                     <div>
@@ -331,9 +332,9 @@ export default function CrewEditor({ crew, onSave, onDelete, onCancel }: CrewEdi
                                         <label className="text-xs font-semibold text-stone-500">CLI Engine</label>
                                         <select value={sk.cli || "qwen"} onChange={e => updateSkill(skIdx, "cli", e.target.value)}
                                             className="w-full mt-1 px-2 py-1.5 border border-stone-300 rounded-lg text-xs">
-                                            <option value="qwen">🟣 Qwen Code</option>
-                                            <option value="claude">🟠 Claude Code</option>
-                                            <option value="opencode">🔵 OpenCode</option>
+                                            <option value="qwen">Qwen Code</option>
+                                            <option value="claude">Claude Code</option>
+                                            <option value="opencode">OpenCode</option>
                                         </select>
                                     </div>
                                     <div>
@@ -347,10 +348,10 @@ export default function CrewEditor({ crew, onSave, onDelete, onCancel }: CrewEdi
                                         <select value={sk.approvalMode || ""} onChange={e => updateSkill(skIdx, "approvalMode", e.target.value)}
                                             className="w-full mt-1 px-2 py-1.5 border border-stone-300 rounded-lg text-xs">
                                             <option value="">Default (inherit)</option>
-                                            <option value="default">🔒 Default</option>
-                                            <option value="auto-edit">✏️ Auto-Edit</option>
-                                            <option value="yolo">🚀 YOLO</option>
-                                            <option value="plan">📋 Plan</option>
+                                            <option value="default">Default</option>
+                                            <option value="auto-edit">Auto-Edit</option>
+                                            <option value="yolo">YOLO</option>
+                                            <option value="plan">Plan</option>
                                         </select>
                                     </div>
                                 </div>
@@ -367,7 +368,7 @@ export default function CrewEditor({ crew, onSave, onDelete, onCancel }: CrewEdi
                                             <div className="flex items-center justify-between">
                                                 <span className="text-[10px] font-bold text-stone-400">Input #{inpIdx + 1}</span>
                                                 <button type="button" onClick={() => removeInput(skIdx, inpIdx)}
-                                                    className="text-[10px] text-red-400 hover:text-red-600 font-bold">✕</button>
+                                                    className="text-[10px] text-red-400 hover:text-red-600 font-bold"><Icon name="cross" size={10} /></button>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div>
@@ -424,7 +425,7 @@ export default function CrewEditor({ crew, onSave, onDelete, onCancel }: CrewEdi
                         {isEdit && onDelete && (
                             <button type="button" onClick={handleDelete} disabled={saving}
                                 className="px-4 py-2 rounded-lg text-sm font-bold bg-red-100 text-red-700 border border-red-300 hover:bg-red-200 transition-colors disabled:opacity-50">
-                                🗑️ Delete
+                                <Icon name="trash" size={14} /> Delete
                             </button>
                         )}
                     </div>
@@ -435,7 +436,7 @@ export default function CrewEditor({ crew, onSave, onDelete, onCancel }: CrewEdi
                         </button>
                         <button type="button" onClick={handleSave} disabled={saving}
                             className="px-6 py-2 rounded-lg text-sm font-bold bg-orange-500 text-white border border-orange-600 hover:bg-orange-600 transition-colors disabled:opacity-50">
-                            {saving ? "Saving..." : isEdit ? "💾 Save Changes" : "➕ Create Employee"}
+                            {saving ? "Saving..." : isEdit ? <><Icon name="save" size={14} /> Save Changes</> : <><Icon name="plus" size={14} /> Create Employee</>}
                         </button>
                     </div>
                 </div>

@@ -1,3 +1,4 @@
+import Icon from "./components/Icon";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /**
@@ -353,13 +354,13 @@ function AppInner() {
         todayIncidents={todayIncidents}
         suggestions={suggestions}
       />;
-    if (tabId === "factory.tour") return <FactoryDocument file="quick-tour" headerIcon="🏭" headerTitle="AI Software Factory" headerSub="快速導覽 — 5 分鐘理解工廠如何運作" />;
+    if (tabId === "factory.tour") return <FactoryDocument file="quick-tour" headerIcon="factory" headerTitle="AI Software Factory" headerSub="快速導覽 — 5 分鐘理解工廠如何運作" />;
     if (tabId.startsWith("orch.")) {
       const [, domain, orchId] = tabId.split(".");
       return <OrchestratorWorkspace domain={domain} orchId={orchId} />;
     }
-    if (tabId === "factory.manifesto") return <FactoryDocument file="constitution" headerIcon="📜" headerTitle="Constitution" headerSub="工廠意法 — 核心原則與價值" />;
-    if (tabId === "factory.standards") return <FactoryDocument file="standards" headerIcon="📐" headerTitle="Standards" headerSub="工程標準與規範" />;
+    if (tabId === "factory.manifesto") return <FactoryDocument file="constitution" headerIcon="scroll" headerTitle="Constitution" headerSub="工廠意法 — 核心原則與價值" />;
+    if (tabId === "factory.standards") return <FactoryDocument file="standards" headerIcon="ruler" headerTitle="Standards" headerSub="工程標準與規範" />;
     if (tabId === "factory.crew") return <AICrew openEmployee={openEmployee} onCrewChanged={loadCrew} />;
     if (tabId === "exec.skills") return <AICrew openEmployee={openEmployee} onCrewChanged={loadCrew} />;
     if (tabId === "exec.gates") return <Gates runSkill={runSkill} />;
@@ -401,7 +402,7 @@ function AppInner() {
               )}
               title={THEMES[id].label}
             >
-              {THEMES[id].emoji}
+              <Icon name={THEMES[id].emoji} size={16} />
             </button>
           ))}
         </div>
