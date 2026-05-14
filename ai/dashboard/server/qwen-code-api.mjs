@@ -635,18 +635,6 @@ function spawnQwenWindows(ptySpawn, opts) {
   return ptySpawn(qwenBin, args, ptyOpts);
 }
 
-  const ptyOpts = {
-    name: "xterm-256color",
-    cols: 120,
-    rows: 30,
-    cwd: resolvedCwd,
-    env: { ...process.env },
-  };
-
-  console.log(`[PTY:Windows] Spawning: ${qwenBin} ${args.join(" ")} (cwd: ${resolvedCwd})`);
-  return ptySpawn(qwenBin, args, ptyOpts);
-}
-
 /**
  * Pick the right spawn function for the current platform
  */
