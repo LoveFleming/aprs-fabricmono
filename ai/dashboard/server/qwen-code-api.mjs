@@ -20,6 +20,7 @@ import { spawn as ptySpawn } from "node-pty";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const DASHBOARD_ROOT = resolve(__dirname, "..");
+const DATA_ROOT = resolve(__dirname, "../../data");
 
 const PORT = parseInt(process.env.QWEN_CODE_PORT || "4097", 10);
 const activeQueries = new Map(); // id -> AbortController
@@ -173,7 +174,7 @@ const server = createServer(async (req, res) => {
 
   // ── Crew CRUD endpoints ──
 
-  const CREW_DIR = resolve(DASHBOARD_ROOT, "public/crew");
+  const CREW_DIR = resolve(DATA_ROOT, "crew");
 
   // Helper: list all crew JSON files
   async function listCrewFiles() {
@@ -337,7 +338,7 @@ const server = createServer(async (req, res) => {
   const convListMatch = req.method === "GET" && req.url?.match(/^\/api\/conversations\/([\w.-]+)$/);
   if (convListMatch) {
     const employeeId = convListMatch[1];
-    const convDir = resolve(DASHBOARD_ROOT, "public/crew/conversation", employeeId);
+    const convDir = resolve(DATA_ROOT, "crew/conversation", employeeId);
     try {
       await mkdir(convDir, { recursive: true });
       const files = await readdir(convDir);
@@ -371,7 +372,7 @@ const server = createServer(async (req, res) => {
   const convGetMatch = req.method === "GET" && req.url?.match(/^\/api\/conversations\/([\w.-]+)\/([\w.-]+)$/);
   if (convGetMatch) {
     const [, employeeId, convId] = convGetMatch;
-    const filePath = resolve(DASHBOARD_ROOT, "public/crew/conversation", employeeId, `${convId}.json`);
+    const filePath = resolve(DATA_ROOT, "crew/conversation", employeeId, `${convId}.json`);
     try {
       const content = await readFile(filePath, "utf-8");
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -392,7 +393,7 @@ const server = createServer(async (req, res) => {
     try { parsed = JSON.parse(body); } catch { res.writeHead(400); res.end("Invalid JSON"); return; }
     const { id, title, messages, model, systemPrompt } = parsed;
     if (!id) { res.writeHead(400); res.end("Missing 'id'"); return; }
-    const convDir = resolve(DASHBOARD_ROOT, "public/crew/conversation", employeeId);
+    const convDir = resolve(DATA_ROOT, "crew/conversation", employeeId);
     await mkdir(convDir, { recursive: true });
     const filePath = join(convDir, `${id}.json`);
     const data = {
@@ -415,7 +416,7 @@ const server = createServer(async (req, res) => {
   const convDeleteMatch = req.method === "DELETE" && req.url?.match(/^\/api\/conversations\/([\w.-]+)\/([\w.-]+)$/);
   if (convDeleteMatch) {
     const [, employeeId, convId] = convDeleteMatch;
-    const filePath = resolve(DASHBOARD_ROOT, "public/crew/conversation", employeeId, `${convId}.json`);
+    const filePath = resolve(DATA_ROOT, "crew/conversation", employeeId, `${convId}.json`);
     const { unlink } = await import("fs/promises");
     try {
       await unlink(filePath);
@@ -434,7 +435,7 @@ const server = createServer(async (req, res) => {
   const singleFileMatch = req.method === "GET" && req.url?.match(/^\/api\/factory-content\/([\w-]+)$/);
   if (singleFileMatch) {
     const name = singleFileMatch[1];
-    const factoryDir = resolve(DASHBOARD_ROOT, "public/factory");
+    const factoryDir = resolve(DATA_ROOT, "factory");
     const filePath = join(factoryDir, `${name}.md`);
     try {
       const content = await readFile(filePath, "utf-8");
@@ -449,7 +450,7 @@ const server = createServer(async (req, res) => {
 
   // GET /api/factory-content — list all markdown files
   if (req.method === "GET" && req.url === "/api/factory-content") {
-    const factoryDir = resolve(DASHBOARD_ROOT, "public/factory");
+    const factoryDir = resolve(DATA_ROOT, "factory");
     try {
       const files = await readdir(factoryDir);
       const mdFiles = files.filter(f => f.endsWith(".md")).sort();
