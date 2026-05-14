@@ -193,17 +193,17 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
                                 <span className="text-emerald-600 font-medium">在線上 · 隨時準備協助您</span>
                             </div>
                         </div>
-                        {/* Right column — skills + actions */}
-                        <div className="w-56 shrink-0 py-3 pr-4 flex flex-col justify-center gap-2 border-l border-blue-100/50">
-                            {/* Skills */}
+                        {/* Right column — skills + actions, no border */}
+                        <div className="shrink-0 py-3 pr-4 pl-4 flex flex-col justify-center gap-2 min-w-[220px] max-w-[280px]">
+                            {/* Skills — two rows max */}
                             <div className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Skills</div>
-                            <div className="flex flex-wrap gap-1.5">
+                            <div className="flex flex-wrap gap-1.5 max-h-[64px] overflow-y-auto">
                                 {allSkills.map(sk => (
                                     <button
                                         key={sk.id}
                                         onClick={() => setEnabledSkills(prev => ({ ...prev, [sk.id]: !prev[sk.id] }))}
                                         className={cn(
-                                            "text-[11px] font-medium px-2.5 py-1 rounded-full border transition-all flex items-center gap-1",
+                                            "text-[11px] font-medium px-2.5 py-1 rounded-full border transition-all flex items-center gap-1 whitespace-nowrap",
                                             enabledSkills[sk.id]
                                                 ? "bg-blue-500 text-white border-blue-500 shadow-sm"
                                                 : "bg-white text-stone-500 border-stone-200 hover:border-blue-300"
