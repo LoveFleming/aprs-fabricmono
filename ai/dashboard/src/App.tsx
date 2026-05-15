@@ -370,9 +370,7 @@ function AppInner() {
     if (tabId.startsWith("employee.")) {
       const [empPart] = tabId.split("#");
       const employeeId = empPart.slice(9);
-      return employeeId === "ai.guide"
-        ? <EmployeeWorkspaceV2 employeeId={employeeId} />
-        : <EmployeeWorkspace employeeId={employeeId} />;
+      return <EmployeeWorkspace employeeId={employeeId} />;
     }
     return <AICrew openEmployee={openEmployee} onCrewChanged={loadCrew} />;
   };

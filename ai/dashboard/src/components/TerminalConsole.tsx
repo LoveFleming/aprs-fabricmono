@@ -62,10 +62,16 @@ export default function TerminalConsole({
             // then send Enter to submit
             wsRef.current.send(JSON.stringify({
                 type: "input",
-                text: `\x1b[200~${text}\x1b[201~\r`,
+                text: `\x1b[200~${text}\x1b[201~`,
             }));
+            // Send Enter separately with a small delay to ensure CLI processes paste first
+            setTimeout(() => {
+                if (wsRef.current?.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(JSON.stringify({ type: "input", text: "\r" }));
+                }
+            }, 150);
         } else {
-            // Single-line: just text + Enter
+            // Single-line: send text then Enter
             wsRef.current.send(JSON.stringify({ type: "input", text: text + "\r" }));
         }
     }, []);
@@ -204,12 +210,15 @@ export default function TerminalConsole({
     }, []); // Mount once
 
     // Auto-send initial prompt when ready
+    // Waits for the CLI to fully initialize before sending.
+    // Uses a longer delay because Qwen/Claude CLI needs time to load.
     useEffect(() => {
         if (!ready || !initialPrompt || initialSentRef.current) return;
         initialSentRef.current = true;
+        const delay = 4000;
         const timer = setTimeout(() => {
             sendInput(initialPrompt);
-        }, 2000);
+        }, delay);
         return () => clearTimeout(timer);
     }, [ready, initialPrompt, sendInput]);
 
