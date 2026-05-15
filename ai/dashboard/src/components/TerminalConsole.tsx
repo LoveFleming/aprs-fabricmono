@@ -52,16 +52,15 @@ export default function TerminalConsole({
         }
     }, []);
 
-    // Send text to PTY — always uses bracketed paste for reliability
+    // Send text to PTY as a single WebSocket message for reliability
     const sendInput = useCallback((text: string) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
-        // Always use bracketed paste — avoids double-input bug with char-by-char typing
-        sendToPty("\x1b[200~"); // bracketed paste start
-        sendToPty(text);
-        sendToPty("\x1b[201~"); // bracketed paste end
-        setTimeout(() => sendToPty("\r"), 100);
-    }, [sendToPty]);
+        // Send text + Enter as a single WS message.
+        // Bracketed paste mode prevents the CLI from interpreting the text
+        // as individual keystrokes (which would trigger auto-complete, etc.)
+        wsRef.current.send(JSON.stringify({ type: "input", text: text + "\r" }));
+    }, []);
 
     // Init terminal + WS + PTY (once on mount)
     useEffect(() => {
@@ -202,7 +201,7 @@ export default function TerminalConsole({
         initialSentRef.current = true;
         const timer = setTimeout(() => {
             sendInput(initialPrompt);
-        }, 5000);
+        }, 2000);
         return () => clearTimeout(timer);
     }, [ready, initialPrompt, sendInput]);
 
