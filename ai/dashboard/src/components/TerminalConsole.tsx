@@ -52,14 +52,22 @@ export default function TerminalConsole({
         }
     }, []);
 
-    // Send text to PTY as a single WebSocket message for reliability
+    // Send text to PTY
     const sendInput = useCallback((text: string) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
-        // Send text + Enter as a single WS message.
-        // Bracketed paste mode prevents the CLI from interpreting the text
-        // as individual keystrokes (which would trigger auto-complete, etc.)
-        wsRef.current.send(JSON.stringify({ type: "input", text: text + "\r" }));
+        const hasNewlines = text.includes("\n");
+        if (hasNewlines) {
+            // Multi-line: use bracketed paste so the CLI treats it as a single paste,
+            // then send Enter to submit
+            wsRef.current.send(JSON.stringify({
+                type: "input",
+                text: `\x1b[200~${text}\x1b[201~\r`,
+            }));
+        } else {
+            // Single-line: just text + Enter
+            wsRef.current.send(JSON.stringify({ type: "input", text: text + "\r" }));
+        }
     }, []);
 
     // Init terminal + WS + PTY (once on mount)

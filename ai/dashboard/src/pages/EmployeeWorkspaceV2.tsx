@@ -155,7 +155,7 @@ export default function EmployeeWorkspaceV2({ employeeId }: Props) {
     const allSkills = employee.skills || [];
 
     return (
-        <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex flex-col lg:flex-row h-full overflow-hidden">
             {/* ===== Main Content ===== */}
             <div className="flex-1 flex flex-col overflow-y-auto p-2 sm:p-3 gap-2 sm:gap-2.5 min-w-0 min-h-0">
 
